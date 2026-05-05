@@ -29,6 +29,7 @@ const MIN_SIZE = 300;
  * - `uniform sampler2D u_texture`  — the HTML content
  * - `uniform vec2 u_resolution`    — canvas size in pixels
  * - `uniform float u_time`         — seconds since mount
+ * - `uniform vec2 u_mouse`         — cursor position, normalized 0–1 (starts at 0.5, 0.5)
  *
  * @example
  * ```tsx
@@ -55,6 +56,8 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
     const onContentRef = useCallback((node: HTMLDivElement | null) => setContentEl(node), []);
 
     const glRef = useRef<WebGL2RenderingContext | null>(null);
+    // Normalized [0,1] mouse position within the canvas. Starts centered.
+    const mouseRef = useRef<readonly [number, number]>([0.5, 0.5]);
 
     useImperativeHandle(
       ref,
@@ -101,6 +104,16 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       const uTexture = gl.getUniformLocation(program, "u_texture");
       const uResolution = gl.getUniformLocation(program, "u_resolution");
       const uTime = gl.getUniformLocation(program, "u_time");
+      const uMouse = gl.getUniformLocation(program, "u_mouse");
+
+      const onMouseMove = (e: MouseEvent) => {
+        const rect = canvasEl.getBoundingClientRect();
+        mouseRef.current = [
+          (e.clientX - rect.left) / rect.width,
+          (e.clientY - rect.top) / rect.height,
+        ];
+      };
+      canvasEl.addEventListener("mousemove", onMouseMove);
 
       // Empty VAO required by WebGL2 for vertex-ID-based draws.
       const vao = gl.createVertexArray();
@@ -153,6 +166,7 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         gl.uniform1i(uTexture, 0);
         gl.uniform2f(uResolution, canvasEl.width, canvasEl.height);
         gl.uniform1f(uTime, t);
+        gl.uniform2f(uMouse, mouseRef.current[0], mouseRef.current[1]);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -164,6 +178,7 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
 
       return () => {
         cancelAnimationFrame(rafId);
+        canvasEl.removeEventListener("mousemove", onMouseMove);
         htmlCanvas.onpaint = null;
         gl.deleteTexture(texture);
         gl.deleteProgram(program);
