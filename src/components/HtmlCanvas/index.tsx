@@ -18,16 +18,19 @@ import type { HtmlCanvasHandle, HtmlCanvasProps } from "./types.js";
 
 export type { HtmlCanvasHandle, HtmlCanvasProps };
 
-const MIN_SIZE = 300;
-
 /**
  * Renders HTML children as a WebGL texture on a `<canvas>` using the
  * HTML-in-Canvas API. Plug in your own fragment shader to apply effects —
  * the HTML content is available as `u_texture`.
  *
+ * Size the canvas with `width`/`height` props (CSS pixels) or via CSS.
+ * The pixel buffer and wrapper div automatically track the canvas's
+ * rendered size via ResizeObserver, so the canvas is always sharp on
+ * HiDPI screens and responds to layout changes.
+ *
  * Standard uniforms provided automatically:
  * - `uniform sampler2D u_texture`  — the HTML content
- * - `uniform vec2 u_resolution`    — canvas size in pixels
+ * - `uniform vec2 u_resolution`    — canvas buffer size in device pixels
  * - `uniform float u_time`         — seconds since mount
  * - `uniform vec2 u_mouse`         — cursor position, normalized 0–1 (starts at 0.5, 0.5)
  *
@@ -44,7 +47,7 @@ const MIN_SIZE = 300;
  */
 export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
   function HtmlCanvas(
-    { frag, vert, width = MIN_SIZE, height = MIN_SIZE, children, className, style },
+    { frag, vert, width, height, children, className, style },
     ref
   ) {
     // Two-phase mount: canvas ref first, then portal content ref.
@@ -59,6 +62,10 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
     // Normalized [0,1] mouse position within the canvas. Starts centered.
     const mouseRef = useRef<readonly [number, number]>([0.5, 0.5]);
 
+    // CSS pixel dimensions of the canvas layout box, observed via ResizeObserver.
+    // Drives the wrapper div size so HTML content matches the canvas coordinate space.
+    const [cssSize, setCssSize] = useState({ width: 0, height: 0 });
+
     useImperativeHandle(
       ref,
       () => ({
@@ -72,6 +79,25 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       }),
       [canvasEl]
     );
+
+    // Sync canvas pixel buffer and wrapper div to the canvas's CSS layout size.
+    // Multiplying by devicePixelRatio keeps the buffer sharp on HiDPI screens.
+    useLayoutEffect(() => {
+      if (!canvasEl) return;
+
+      const ro = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const { width: cssW, height: cssH } = entry.contentRect;
+        const dpr = window.devicePixelRatio || 1;
+        canvasEl.width = Math.round(cssW * dpr);
+        canvasEl.height = Math.round(cssH * dpr);
+        setCssSize({ width: cssW, height: cssH });
+      });
+
+      ro.observe(canvasEl);
+      return () => ro.disconnect();
+    }, [canvasEl]);
 
     useLayoutEffect(() => {
       if (!canvasEl || !contentEl) return;
@@ -191,18 +217,17 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       <>
         <canvas
           ref={onCanvasRef}
-          width={width}
-          height={height}
           className={className}
-          style={style}
+          style={{ display: "block", width, height, ...style }}
         />
         {canvasEl &&
           createPortal(
-            // This div is the direct canvas child required by the spec.
-            // Explicit width/height matches the canvas pixel buffer so that
-            // texElementImage2D captures the correct area and UV coordinates
-            // align with the mouse position tracking on the canvas element.
-            <div ref={onContentRef} style={{ width, height, overflow: "hidden" }}>
+            // Direct canvas child required by the spec, sized to the CSS layout
+            // box so HTML content and mouse position share the same coordinate space.
+            <div
+              ref={onContentRef}
+              style={{ width: cssSize.width, height: cssSize.height, overflow: "hidden" }}
+            >
               {children}
             </div>,
             canvasEl

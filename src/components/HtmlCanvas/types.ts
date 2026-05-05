@@ -16,11 +16,19 @@ export interface HtmlCanvasProps {
    */
   vert?: string;
 
-  /** Canvas width in CSS pixels. Defaults to `300`. */
-  width?: number;
+  /**
+   * CSS width of the canvas (e.g. `640` or `"100%"`).
+   * The pixel buffer automatically tracks the rendered size via ResizeObserver.
+   * If omitted, size the canvas via CSS or a `className`.
+   */
+  width?: number | string;
 
-  /** Canvas height in CSS pixels. Defaults to `300`. */
-  height?: number;
+  /**
+   * CSS height of the canvas (e.g. `420` or `"100vh"`).
+   * The pixel buffer automatically tracks the rendered size via ResizeObserver.
+   * If omitted, size the canvas via CSS or a `className`.
+   */
+  height?: number | string;
 
   className?: string;
   style?: CSSProperties;
