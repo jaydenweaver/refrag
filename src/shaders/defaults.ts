@@ -13,7 +13,9 @@ void main() {
   // The GPU clips to the viewport, no geometry buffer needed.
   vec2 pos[3] = vec2[](vec2(-1, -1), vec2(3, -1), vec2(-1, 3));
   gl_Position = vec4(pos[gl_VertexID], 0.0, 1.0);
-  v_uv = pos[gl_VertexID] * 0.5 + 0.5;
+  // Flip Y: WebGL origin is bottom-left, DOM/texture origin is top-left.
+  vec2 uv = pos[gl_VertexID] * 0.5 + 0.5;
+  v_uv = vec2(uv.x, 1.0 - uv.y);
 }
 `;
 
