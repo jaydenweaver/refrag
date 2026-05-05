@@ -12,14 +12,14 @@ import { createPortal } from "react-dom";
 import { createProgram } from "../../core/webgl.js";
 import { DEFAULT_FRAG, DEFAULT_VERT } from "../../shaders/defaults.js";
 import type { HtmlInCanvasElement, PaintEvent, WebGL2RenderingContextWithHtml } from "../../types.js";
-import type { HtmlCanvasHandle, HtmlCanvasProps } from "./types.js";
+import type { CustomUniform, HtmlCanvasHandle, HtmlCanvasProps } from "./types.js";
 
 // React Compiler safe
 
 // TODO: support custom events passed as props (e.g. scroll, keyboard, gamepad)
 // so users can drive their own uniforms without forking the component.
 
-export type { HtmlCanvasHandle, HtmlCanvasProps };
+export type { CustomUniform, HtmlCanvasHandle, HtmlCanvasProps };
 
 type Uniforms = {
   uTexture: WebGLUniformLocation | null;
@@ -63,7 +63,7 @@ type Uniforms = {
  */
 export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
   function HtmlCanvas(
-    { frag, vert, width, height, children, className, style },
+    { frag, vert, width, height, children, className, style, uniforms },
     ref
   ) {
     // Two-phase mount: canvas ref first, then portal content ref.
@@ -85,6 +85,11 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
     const mouseDownRef = useRef(0);
     // 1.0 while the pointer is inside the canvas, 0.0 otherwise.
     const mouseInsideRef = useRef(0);
+
+    // Latest custom uniforms — written every render so the draw loop always reads
+    // the current values without needing to restart or re-subscribe.
+    const customUniformsRef = useRef<CustomUniform[]>(uniforms ?? []);
+    customUniformsRef.current = uniforms ?? [];
 
     // CSS pixel dimensions of the canvas layout box, observed via ResizeObserver.
     // Drives the wrapper div size so HTML content matches the canvas coordinate space.
@@ -233,6 +238,23 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         gl.uniform1f(uniforms.uMouseInside, mouseInsideRef.current);
         gl.uniform1f(uniforms.uDpr, window.devicePixelRatio || 1);
 
+        for (const u of customUniformsRef.current) {
+          const loc = gl.getUniformLocation(program, u.name);
+          if (!loc) continue;
+          const v = u.value;
+          if (typeof v === "boolean") {
+            gl.uniform1f(loc, v ? 1.0 : 0.0);
+          } else if (typeof v === "number") {
+            gl.uniform1f(loc, v);
+          } else if (v.length === 2) {
+            gl.uniform2f(loc, v[0], v[1]);
+          } else if (v.length === 3) {
+            gl.uniform3f(loc, v[0], v[1], v[2]);
+          } else if (v.length === 4) {
+            gl.uniform4f(loc, v[0], v[1], v[2], v[3]);
+          }
+        }
+
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
         gl.bindVertexArray(null);
@@ -283,6 +305,12 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       };
 
       if (prev) gl.deleteProgram(prev);
+
+      return () => {
+        gl.deleteProgram(program);
+        programRef.current = null;
+        uniformsRef.current = null;
+      };
     }, [canvasEl, contentEl, frag, vert]);
 
     return (

@@ -1,5 +1,30 @@
 import type { CSSProperties, ReactNode } from "react";
 
+/**
+ * A custom uniform to pass to the fragment/vertex shader.
+ *
+ * | `value` type          | GLSL type        |
+ * |-----------------------|------------------|
+ * | `boolean`             | `float` (0 or 1) |
+ * | `number`              | `float`          |
+ * | `[number, number]`    | `vec2`           |
+ * | `[number, number, number]` | `vec3`      |
+ * | `[number, number, number, number]` | `vec4` |
+ *
+ * @example
+ * ```tsx
+ * uniforms={[
+ *   { name: "u_active", value: true },
+ *   { name: "u_strength", value: 0.8 },
+ *   { name: "u_color", value: [1, 0.5, 0.2] },
+ * ]}
+ * ```
+ */
+export interface CustomUniform {
+  name: string;
+  value: boolean | number | readonly [number, number] | readonly [number, number, number] | readonly [number, number, number, number];
+}
+
 export interface HtmlCanvasProps {
   /**
    * Raw GLSL fragment shader source. Import your `.glsl` file with `?raw`:
@@ -29,6 +54,17 @@ export interface HtmlCanvasProps {
    * If omitted, size the canvas via CSS or a `className`.
    */
   height?: number | string;
+
+  /**
+   * Custom uniforms to upload each frame. Booleans map to `float` 1.0/0.0.
+   * Changes are picked up automatically — no re-mount required.
+   *
+   * @example
+   * ```tsx
+   * uniforms={[{ name: "u_active", value: isActive }, { name: "u_strength", value: 0.8 }]}
+   * ```
+   */
+  uniforms?: CustomUniform[];
 
   className?: string;
   style?: CSSProperties;
