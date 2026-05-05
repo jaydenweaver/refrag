@@ -26,6 +26,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest",
+    "test:e2e": "playwright test -c playwright-ct.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },
@@ -34,6 +35,7 @@
     "react-dom": ">=19"
   },
   "devDependencies": {
+    "@playwright/experimental-ct-react": "^1.59.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
