@@ -18,6 +18,15 @@ import type { HtmlCanvasHandle, HtmlCanvasProps } from "./types.js";
 
 export type { HtmlCanvasHandle, HtmlCanvasProps };
 
+type Uniforms = {
+  uTexture: WebGLUniformLocation | null;
+  uResolution: WebGLUniformLocation | null;
+  uTime: WebGLUniformLocation | null;
+  uMouse: WebGLUniformLocation | null;
+  uMouseDown: WebGLUniformLocation | null;
+  uDpr: WebGLUniformLocation | null;
+};
+
 /**
  * Renders HTML children as a WebGL texture on a `<canvas>` using the
  * HTML-in-Canvas API. Plug in your own fragment shader to apply effects —
@@ -61,6 +70,10 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
     const onContentRef = useCallback((node: HTMLDivElement | null) => setContentEl(node), []);
 
     const glRef = useRef<WebGL2RenderingContext | null>(null);
+    // Shader program and uniform locations are kept in refs so the draw loop
+    // and the shader-recompile effect can share them without restarting the loop.
+    const programRef = useRef<WebGLProgram | null>(null);
+    const uniformsRef = useRef<Uniforms | null>(null);
     // Normalized [0,1] pointer position within the canvas. Starts centered.
     const mouseRef = useRef<readonly [number, number]>([0.5, 0.5]);
     // 1.0 while any pointer button is pressed, 0.0 otherwise.
@@ -103,6 +116,10 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       return () => ro.disconnect();
     }, [canvasEl]);
 
+    // Core WebGL setup: context, texture, onpaint, pointer events, rAF loop.
+    // Runs once when both elements are mounted. Intentionally does not depend on
+    // frag/vert — shader changes are handled by the effect below so that the
+    // texture and onpaint handler survive shader switches without going blank.
     useLayoutEffect(() => {
       if (!canvasEl || !contentEl) return;
 
@@ -122,42 +139,6 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         );
         return;
       }
-
-      let program: WebGLProgram;
-      try {
-        program = createProgram(gl, vert ?? DEFAULT_VERT, frag ?? DEFAULT_FRAG);
-      } catch (err) {
-        console.error(err);
-        return;
-      }
-
-      const uTexture = gl.getUniformLocation(program, "u_texture");
-      const uResolution = gl.getUniformLocation(program, "u_resolution");
-      const uTime = gl.getUniformLocation(program, "u_time");
-      const uMouse = gl.getUniformLocation(program, "u_mouse");
-      const uMouseDown = gl.getUniformLocation(program, "u_mouse_down");
-      const uDpr = gl.getUniformLocation(program, "u_dpr");
-
-      const onPointerMove = (e: PointerEvent) => {
-        const rect = canvasEl.getBoundingClientRect();
-        mouseRef.current = [
-          (e.clientX - rect.left) / rect.width,
-          (e.clientY - rect.top) / rect.height,
-        ];
-      };
-      const onPointerDown = () => { mouseDownRef.current = 1; };
-      const onPointerUp = () => { mouseDownRef.current = 0; };
-      // Reset position and pressed state when pointer leaves so shaders don't
-      // freeze on the last known value.
-      const onPointerLeave = () => {
-        mouseRef.current = [0.5, 0.5];
-        mouseDownRef.current = 0;
-      };
-
-      canvasEl.addEventListener("pointermove", onPointerMove);
-      canvasEl.addEventListener("pointerdown", onPointerDown);
-      canvasEl.addEventListener("pointerup", onPointerUp);
-      canvasEl.addEventListener("pointerleave", onPointerLeave);
 
       // Empty VAO required by WebGL2 for vertex-ID-based draws.
       const vao = gl.createVertexArray();
@@ -191,11 +172,41 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
 
       if ("requestPaint" in htmlCanvas) htmlCanvas.requestPaint();
 
+      const onPointerMove = (e: PointerEvent) => {
+        const rect = canvasEl.getBoundingClientRect();
+        mouseRef.current = [
+          (e.clientX - rect.left) / rect.width,
+          (e.clientY - rect.top) / rect.height,
+        ];
+      };
+      const onPointerDown = () => { mouseDownRef.current = 1; };
+      const onPointerUp = () => { mouseDownRef.current = 0; };
+      // Reset position and pressed state when pointer leaves so shaders don't
+      // freeze on the last known value.
+      const onPointerLeave = () => {
+        mouseRef.current = [0.5, 0.5];
+        mouseDownRef.current = 0;
+      };
+
+      canvasEl.addEventListener("pointermove", onPointerMove);
+      canvasEl.addEventListener("pointerdown", onPointerDown);
+      canvasEl.addEventListener("pointerup", onPointerUp);
+      canvasEl.addEventListener("pointerleave", onPointerLeave);
+
       // Continuous draw loop so time-based shader effects animate smoothly.
       const startTime = performance.now();
       let rafId: number;
 
       const draw = () => {
+        const program = programRef.current;
+        const uniforms = uniformsRef.current;
+
+        // Skip draw until the shader program is compiled.
+        if (!program || !uniforms) {
+          rafId = requestAnimationFrame(draw);
+          return;
+        }
+
         const t = (performance.now() - startTime) / 1000;
 
         gl.viewport(0, 0, canvasEl.width, canvasEl.height);
@@ -207,12 +218,12 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.uniform1i(uTexture, 0);
-        gl.uniform2f(uResolution, canvasEl.width, canvasEl.height);
-        gl.uniform1f(uTime, t);
-        gl.uniform2f(uMouse, mouseRef.current[0], mouseRef.current[1]);
-        gl.uniform1f(uMouseDown, mouseDownRef.current);
-        gl.uniform1f(uDpr, window.devicePixelRatio || 1);
+        gl.uniform1i(uniforms.uTexture, 0);
+        gl.uniform2f(uniforms.uResolution, canvasEl.width, canvasEl.height);
+        gl.uniform1f(uniforms.uTime, t);
+        gl.uniform2f(uniforms.uMouse, mouseRef.current[0], mouseRef.current[1]);
+        gl.uniform1f(uniforms.uMouseDown, mouseDownRef.current);
+        gl.uniform1f(uniforms.uDpr, window.devicePixelRatio || 1);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -230,10 +241,38 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         canvasEl.removeEventListener("pointerleave", onPointerLeave);
         htmlCanvas.onpaint = null;
         gl.deleteTexture(texture);
-        gl.deleteProgram(program);
         gl.deleteVertexArray(vao);
         glRef.current = null;
       };
+    }, [canvasEl, contentEl]);
+
+    // Recompile the shader program when frag or vert changes.
+    // Runs after the core effect, so glRef is already populated.
+    // The rAF loop continues uninterrupted — it just picks up the new program.
+    useLayoutEffect(() => {
+      const gl = glRef.current;
+      if (!gl) return;
+
+      let program: WebGLProgram;
+      try {
+        program = createProgram(gl, vert ?? DEFAULT_VERT, frag ?? DEFAULT_FRAG);
+      } catch (err) {
+        console.error(err);
+        return;
+      }
+
+      const prev = programRef.current;
+      programRef.current = program;
+      uniformsRef.current = {
+        uTexture: gl.getUniformLocation(program, "u_texture"),
+        uResolution: gl.getUniformLocation(program, "u_resolution"),
+        uTime: gl.getUniformLocation(program, "u_time"),
+        uMouse: gl.getUniformLocation(program, "u_mouse"),
+        uMouseDown: gl.getUniformLocation(program, "u_mouse_down"),
+        uDpr: gl.getUniformLocation(program, "u_dpr"),
+      };
+
+      if (prev) gl.deleteProgram(prev);
     }, [canvasEl, contentEl, frag, vert]);
 
     return (
