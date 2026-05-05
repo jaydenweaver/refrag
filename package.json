@@ -24,7 +24,8 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch",
+    "dev": "cd examples && npm run dev",
+    "watch": "tsup --watch",
     "test": "vitest",
     "test:e2e": "playwright test -c playwright-ct.config.ts",
     "typecheck": "tsc --noEmit",
