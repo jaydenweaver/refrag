@@ -11,7 +11,7 @@ function makeMockElement(): HTMLElement {
 }
 
 function firePaint(canvas: HtmlInCanvasElement, changedElements: Element[]) {
-  canvas.onpaint?.({ changedElements } as PaintEvent);
+  canvas.onpaint?.({ changedElements } as unknown as PaintEvent);
 }
 
 describe("addPaintListener", () => {
