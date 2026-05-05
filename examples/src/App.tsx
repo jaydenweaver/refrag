@@ -1,7 +1,7 @@
 "use client";
 
 import { HtmlCanvas } from "refrag";
-import waveFrag from "./shaders/wave.frag?raw";
+import mouseFrag from "./shaders/mouse.frag?raw";
 
 const TAGS = ["React 19", "WebGL2", "TypeScript", "HTML-in-Canvas"];
 
@@ -79,7 +79,7 @@ const styles = {
 export function App() {
   return (
     <main style={styles.page}>
-      <HtmlCanvas frag={waveFrag} width={640} height={420}>
+      <HtmlCanvas frag={mouseFrag} width={640} height={420}>
         <div style={styles.card}>
           <span style={styles.eyebrow}>refrag</span>
 
@@ -106,7 +106,7 @@ export function App() {
       </HtmlCanvas>
 
       <p style={styles.caption}>
-        wave distortion + chromatic aberration — wave.frag
+        bulge lens + chromatic aberration — mouse.frag
       </p>
     </main>
   );
