@@ -5,6 +5,7 @@ uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform float u_mouse_down;
+uniform float u_mouse_inside;
 
 in vec2 v_uv;
 out vec4 out_color;
@@ -17,8 +18,8 @@ float hash(float n) {
 void main() {
   vec2 uv = v_uv;
 
-  // Glitch intensity: always a low idle amount, spikes on mouse down.
-  float intensity = 0.015 + u_mouse_down * 0.12;
+  // Glitch intensity: idle when outside, spikes on mouse down.
+  float intensity = 0.015 * u_mouse_inside + u_mouse_down * 0.12;
 
   // Horizontal slice glitch: shift random rows at irregular intervals.
   float sliceT    = floor(u_time * 8.0);

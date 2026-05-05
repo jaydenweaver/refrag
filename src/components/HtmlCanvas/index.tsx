@@ -24,6 +24,7 @@ type Uniforms = {
   uTime: WebGLUniformLocation | null;
   uMouse: WebGLUniformLocation | null;
   uMouseDown: WebGLUniformLocation | null;
+  uMouseInside: WebGLUniformLocation | null;
   uDpr: WebGLUniformLocation | null;
 };
 
@@ -41,8 +42,9 @@ type Uniforms = {
  * - `uniform sampler2D u_texture`   — the HTML content
  * - `uniform vec2 u_resolution`     — canvas buffer size in device pixels
  * - `uniform float u_time`          — seconds since mount
- * - `uniform vec2 u_mouse`          — pointer position, normalized 0–1 (resets to 0.5,0.5 on leave)
+ * - `uniform vec2 u_mouse`          — pointer position, normalized 0–1 (last known position when outside)
  * - `uniform float u_mouse_down`    — 1.0 while a pointer button is held, 0.0 otherwise
+ * - `uniform float u_mouse_inside`  — 1.0 while the pointer is over the canvas, 0.0 otherwise
  * - `uniform float u_dpr`           — devicePixelRatio
  *
  * @example
@@ -78,6 +80,8 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
     const mouseRef = useRef<readonly [number, number]>([0.5, 0.5]);
     // 1.0 while any pointer button is pressed, 0.0 otherwise.
     const mouseDownRef = useRef(0);
+    // 1.0 while the pointer is inside the canvas, 0.0 otherwise.
+    const mouseInsideRef = useRef(0);
 
     // CSS pixel dimensions of the canvas layout box, observed via ResizeObserver.
     // Drives the wrapper div size so HTML content matches the canvas coordinate space.
@@ -181,16 +185,16 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       };
       const onPointerDown = () => { mouseDownRef.current = 1; };
       const onPointerUp = () => { mouseDownRef.current = 0; };
-      // Reset position and pressed state when pointer leaves so shaders don't
-      // freeze on the last known value.
+      const onPointerEnter = () => { mouseInsideRef.current = 1; };
       const onPointerLeave = () => {
-        mouseRef.current = [0.5, 0.5];
+        mouseInsideRef.current = 0;
         mouseDownRef.current = 0;
       };
 
       canvasEl.addEventListener("pointermove", onPointerMove);
       canvasEl.addEventListener("pointerdown", onPointerDown);
       canvasEl.addEventListener("pointerup", onPointerUp);
+      canvasEl.addEventListener("pointerenter", onPointerEnter);
       canvasEl.addEventListener("pointerleave", onPointerLeave);
 
       // Continuous draw loop so time-based shader effects animate smoothly.
@@ -223,6 +227,7 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         gl.uniform1f(uniforms.uTime, t);
         gl.uniform2f(uniforms.uMouse, mouseRef.current[0], mouseRef.current[1]);
         gl.uniform1f(uniforms.uMouseDown, mouseDownRef.current);
+        gl.uniform1f(uniforms.uMouseInside, mouseInsideRef.current);
         gl.uniform1f(uniforms.uDpr, window.devicePixelRatio || 1);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -238,6 +243,7 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         canvasEl.removeEventListener("pointermove", onPointerMove);
         canvasEl.removeEventListener("pointerdown", onPointerDown);
         canvasEl.removeEventListener("pointerup", onPointerUp);
+        canvasEl.removeEventListener("pointerenter", onPointerEnter);
         canvasEl.removeEventListener("pointerleave", onPointerLeave);
         htmlCanvas.onpaint = null;
         gl.deleteTexture(texture);
@@ -269,6 +275,7 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         uTime: gl.getUniformLocation(program, "u_time"),
         uMouse: gl.getUniformLocation(program, "u_mouse"),
         uMouseDown: gl.getUniformLocation(program, "u_mouse_down"),
+        uMouseInside: gl.getUniformLocation(program, "u_mouse_inside"),
         uDpr: gl.getUniformLocation(program, "u_dpr"),
       };
 

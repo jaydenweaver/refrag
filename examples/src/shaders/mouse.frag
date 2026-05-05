@@ -5,6 +5,7 @@ uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec2 u_mouse;
+uniform float u_mouse_inside;
 
 in vec2 v_uv;
 out vec4 out_color;
@@ -17,9 +18,9 @@ void main() {
   vec2 toMouse = (uv - u_mouse) * vec2(aspect, 1.0);
   float dist = length(toMouse);
 
-  // Smooth bulge lens centered on the cursor.
+  // Smooth bulge lens centered on the cursor, inactive when pointer is outside.
   float radius   = 0.2;
-  float strength = 0.35;
+  float strength = 0.35 * u_mouse_inside;
   float falloff  = 1.0 - smoothstep(0.0, radius, dist);
   float bulge    = falloff * falloff * strength;
   uv -= (toMouse / vec2(aspect, 1.0)) * bulge;
