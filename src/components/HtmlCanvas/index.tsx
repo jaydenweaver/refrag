@@ -29,10 +29,12 @@ export type { HtmlCanvasHandle, HtmlCanvasProps };
  * HiDPI screens and responds to layout changes.
  *
  * Standard uniforms provided automatically:
- * - `uniform sampler2D u_texture`  — the HTML content
- * - `uniform vec2 u_resolution`    — canvas buffer size in device pixels
- * - `uniform float u_time`         — seconds since mount
- * - `uniform vec2 u_mouse`         — cursor position, normalized 0–1 (starts at 0.5, 0.5)
+ * - `uniform sampler2D u_texture`   — the HTML content
+ * - `uniform vec2 u_resolution`     — canvas buffer size in device pixels
+ * - `uniform float u_time`          — seconds since mount
+ * - `uniform vec2 u_mouse`          — pointer position, normalized 0–1 (resets to 0.5,0.5 on leave)
+ * - `uniform float u_mouse_down`    — 1.0 while a pointer button is held, 0.0 otherwise
+ * - `uniform float u_dpr`           — devicePixelRatio
  *
  * @example
  * ```tsx
@@ -59,8 +61,10 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
     const onContentRef = useCallback((node: HTMLDivElement | null) => setContentEl(node), []);
 
     const glRef = useRef<WebGL2RenderingContext | null>(null);
-    // Normalized [0,1] mouse position within the canvas. Starts centered.
+    // Normalized [0,1] pointer position within the canvas. Starts centered.
     const mouseRef = useRef<readonly [number, number]>([0.5, 0.5]);
+    // 1.0 while any pointer button is pressed, 0.0 otherwise.
+    const mouseDownRef = useRef(0);
 
     // CSS pixel dimensions of the canvas layout box, observed via ResizeObserver.
     // Drives the wrapper div size so HTML content matches the canvas coordinate space.
@@ -131,15 +135,29 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
       const uResolution = gl.getUniformLocation(program, "u_resolution");
       const uTime = gl.getUniformLocation(program, "u_time");
       const uMouse = gl.getUniformLocation(program, "u_mouse");
+      const uMouseDown = gl.getUniformLocation(program, "u_mouse_down");
+      const uDpr = gl.getUniformLocation(program, "u_dpr");
 
-      const onMouseMove = (e: MouseEvent) => {
+      const onPointerMove = (e: PointerEvent) => {
         const rect = canvasEl.getBoundingClientRect();
         mouseRef.current = [
           (e.clientX - rect.left) / rect.width,
           (e.clientY - rect.top) / rect.height,
         ];
       };
-      canvasEl.addEventListener("mousemove", onMouseMove);
+      const onPointerDown = () => { mouseDownRef.current = 1; };
+      const onPointerUp = () => { mouseDownRef.current = 0; };
+      // Reset position and pressed state when pointer leaves so shaders don't
+      // freeze on the last known value.
+      const onPointerLeave = () => {
+        mouseRef.current = [0.5, 0.5];
+        mouseDownRef.current = 0;
+      };
+
+      canvasEl.addEventListener("pointermove", onPointerMove);
+      canvasEl.addEventListener("pointerdown", onPointerDown);
+      canvasEl.addEventListener("pointerup", onPointerUp);
+      canvasEl.addEventListener("pointerleave", onPointerLeave);
 
       // Empty VAO required by WebGL2 for vertex-ID-based draws.
       const vao = gl.createVertexArray();
@@ -193,6 +211,8 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         gl.uniform2f(uResolution, canvasEl.width, canvasEl.height);
         gl.uniform1f(uTime, t);
         gl.uniform2f(uMouse, mouseRef.current[0], mouseRef.current[1]);
+        gl.uniform1f(uMouseDown, mouseDownRef.current);
+        gl.uniform1f(uDpr, window.devicePixelRatio || 1);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -204,7 +224,10 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
 
       return () => {
         cancelAnimationFrame(rafId);
-        canvasEl.removeEventListener("mousemove", onMouseMove);
+        canvasEl.removeEventListener("pointermove", onPointerMove);
+        canvasEl.removeEventListener("pointerdown", onPointerDown);
+        canvasEl.removeEventListener("pointerup", onPointerUp);
+        canvasEl.removeEventListener("pointerleave", onPointerLeave);
         htmlCanvas.onpaint = null;
         gl.deleteTexture(texture);
         gl.deleteProgram(program);
