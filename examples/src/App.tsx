@@ -1,9 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { HtmlCanvas } from "refrag";
+import glitchFrag from "./shaders/glitch.frag?raw";
 import mouseFrag from "./shaders/mouse.frag?raw";
 
 const TAGS = ["React 19", "WebGL2", "TypeScript", "HTML-in-Canvas"];
+
+const SHADERS = [
+  { id: "mouse", label: "mouse.frag", frag: mouseFrag, caption: "bulge lens + chromatic aberration" },
+  { id: "glitch", label: "glitch.frag", frag: glitchFrag, caption: "RGB glitch + scanlines — hold to intensify" },
+] as const;
+
+type ShaderId = (typeof SHADERS)[number]["id"];
 
 const styles = {
   page: {
@@ -69,6 +78,10 @@ const styles = {
     letterSpacing: "0.05em",
     background: "#0f172a",
   },
+  controls: {
+    display: "flex",
+    gap: "0.5rem",
+  },
   caption: {
     fontSize: "0.75rem",
     color: "#1e293b",
@@ -76,10 +89,28 @@ const styles = {
   },
 } satisfies Record<string, React.CSSProperties>;
 
+function shaderButtonStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: "0.35rem 0.9rem",
+    borderRadius: "9999px",
+    border: `1px solid ${active ? "#4f46e5" : "#1e293b"}`,
+    background: active ? "#1e1b4b" : "#0f172a",
+    color: active ? "#818cf8" : "#475569",
+    fontSize: "0.7rem",
+    letterSpacing: "0.05em",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    transition: "all 0.15s",
+  };
+}
+
 export function App() {
+  const [activeId, setActiveId] = useState<ShaderId>("mouse");
+  const active = SHADERS.find((s) => s.id === activeId)!;
+
   return (
     <main style={styles.page}>
-      <HtmlCanvas frag={mouseFrag} width={640} height={420}>
+      <HtmlCanvas frag={active.frag} width={640} height={420}>
         <div style={styles.card}>
           <span style={styles.eyebrow}>refrag</span>
 
@@ -105,9 +136,15 @@ export function App() {
         </div>
       </HtmlCanvas>
 
-      <p style={styles.caption}>
-        bulge lens + chromatic aberration — mouse.frag
-      </p>
+      <div style={styles.controls}>
+        {SHADERS.map((s) => (
+          <button key={s.id} style={shaderButtonStyle(s.id === activeId)} onClick={() => setActiveId(s.id)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <p style={styles.caption}>{active.caption}</p>
     </main>
   );
 }
