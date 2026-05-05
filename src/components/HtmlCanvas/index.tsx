@@ -16,6 +16,9 @@ import type { HtmlCanvasHandle, HtmlCanvasProps } from "./types.js";
 
 // React Compiler safe
 
+// TODO: support custom events passed as props (e.g. scroll, keyboard, gamepad)
+// so users can drive their own uniforms without forking the component.
+
 export type { HtmlCanvasHandle, HtmlCanvasProps };
 
 type Uniforms = {
