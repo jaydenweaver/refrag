@@ -7,8 +7,6 @@ import { addPaintListener, removePaintListener } from "./utils.js";
 
 // React Compiler safe
 
-export type { UseHtmlTextureResult };
-
 /**
  * Low-level escape hatch: renders an HTML element into a WebGL texture using
  * the HTML-in-Canvas API. Attach the returned `ref` to any HTML element and
