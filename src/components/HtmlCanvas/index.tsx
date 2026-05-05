@@ -132,7 +132,7 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         gl.bindTexture(gl.TEXTURE_2D, null);
       };
 
-      htmlCanvas.requestPaint();
+      if ("requestPaint" in htmlCanvas) htmlCanvas.requestPaint();
 
       // Continuous draw loop so time-based shader effects animate smoothly.
       const startTime = performance.now();
