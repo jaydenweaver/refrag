@@ -199,9 +199,10 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
         {canvasEl &&
           createPortal(
             // This div is the direct canvas child required by the spec.
-            // position:absolute + inset:0 makes it cover the canvas exactly,
-            // matching the coordinate space used by texElementImage2D.
-            <div ref={onContentRef} style={{ position: "absolute", inset: 0 }}>
+            // Explicit width/height matches the canvas pixel buffer so that
+            // texElementImage2D captures the correct area and UV coordinates
+            // align with the mouse position tracking on the canvas element.
+            <div ref={onContentRef} style={{ width, height, overflow: "hidden" }}>
               {children}
             </div>,
             canvasEl
