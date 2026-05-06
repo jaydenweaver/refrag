@@ -38,23 +38,7 @@ npm install refrag
 
 ## Usage
 
-### Basic (no shader)
-
-Without a shader the canvas renders the HTML content as-is:
-
-```tsx
-import { HtmlShader } from 'refrag';
-
-<HtmlShader style={{ width: 640, height: 420 }}>
-  <div style={{ padding: '2rem', background: '#1e293b', color: '#f8fafc' }}>
-    Hello from the DOM
-  </div>
-</HtmlShader>
-```
-
-### With a fragment shader
-
-Import your `.glsl` file as a raw string (Vite `?raw`, webpack `raw-loader`, etc.) and pass it as `frag`:
+Import your `.glsl` file as a raw string (Vite `?raw`, webpack `raw-loader`, etc.) and pass it as `frag` (Inline shaders as strings work as well):
 
 ```tsx
 import { HtmlShader } from 'refrag';
@@ -169,7 +153,7 @@ const ref = useRef<HtmlShaderHandle>(null);
 
 ## refrag vs Three.js HTMLTexture
 
-Three.js [added `HTMLTexture`](https://github.com/mrdoob/three.js/pull/31233) which uses the same underlying API. If you're already in a Three.js / React Three Fiber scene and just need HTML on a mesh, use that. It's the right tool for the job.
+Three.js added [`HTMLTexture`](https://github.com/mrdoob/three.js/pull/31233) which uses the same underlying API. If you're already in a Three.js / React Three Fiber scene and just need HTML on a mesh, use that. It's the right tool for the job.
 
 **Use `refrag` when:**
 
