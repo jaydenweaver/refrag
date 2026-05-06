@@ -63,7 +63,7 @@ type Uniforms = {
  */
 export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
   function HtmlShader(
-    { frag, vert, width, height, children, className, style, uniforms },
+    { frag, vert, width, height, children, className, style, uniforms, animated = true },
     ref
   ) {
     // Two-phase mount: canvas ref first, then portal content ref.
@@ -90,6 +90,9 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
     // the current values without needing to restart or re-subscribe.
     const customUniformsRef = useRef<CustomUniform[]>(uniforms ?? []);
     customUniformsRef.current = uniforms ?? [];
+
+    const animatedRef = useRef(animated);
+    animatedRef.current = animated;
 
     // CSS pixel dimensions of the canvas layout box, observed via ResizeObserver.
     // Drives the wrapper div size so HTML content matches the canvas coordinate space.
@@ -168,6 +171,7 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       if (!htmlCanvas.layoutSubtree) htmlCanvas.layoutSubtree = true;
 
       // Re-upload the HTML content to GPU whenever the browser repaints it.
+      // In static mode, also schedule a one-shot draw so the new texture is rendered.
       htmlCanvas.onpaint = (event: PaintEvent) => {
         if (!event.changedElements.includes(contentEl)) return;
         gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -180,6 +184,7 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
           contentEl
         );
         gl.bindTexture(gl.TEXTURE_2D, null);
+        if (!animatedRef.current) rafId = requestAnimationFrame(draw);
       };
 
       if ("requestPaint" in htmlCanvas) htmlCanvas.requestPaint();
@@ -258,7 +263,7 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
         gl.bindVertexArray(null);
-        rafId = requestAnimationFrame(draw);
+        if (animatedRef.current) rafId = requestAnimationFrame(draw);
       };
 
       rafId = requestAnimationFrame(draw);
