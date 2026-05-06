@@ -15,12 +15,12 @@ The HTML-in-Canvas API lets browsers paint DOM subtrees into a WebGL texture. `r
 ```tsx
 import frag from './ripple.frag?raw';
 
-<HtmlCanvas frag={frag}>
+<HtmlShader frag={frag}>
   <div className="card">
     <h1>Real HTML</h1>
     <p>Real CSS. Real accessibility.</p>
   </div>
-</HtmlCanvas>
+</HtmlShader>
 ```
 
 And get real DOM (focusable, selectable, screen-reader accessible) rendered through a WebGL shader.
@@ -49,13 +49,13 @@ npm install refrag
 Without a shader the canvas renders the HTML content as-is:
 
 ```tsx
-import { HtmlCanvas } from 'refrag';
+import { HtmlShader } from 'refrag';
 
-<HtmlCanvas style={{ width: 640, height: 420 }}>
+<HtmlShader style={{ width: 640, height: 420 }}>
   <div style={{ padding: '2rem', background: '#1e293b', color: '#f8fafc' }}>
     Hello from the DOM
   </div>
-</HtmlCanvas>
+</HtmlShader>
 ```
 
 ### With a fragment shader
@@ -63,12 +63,12 @@ import { HtmlCanvas } from 'refrag';
 Import your `.glsl` file as a raw string (Vite `?raw`, webpack `raw-loader`, etc.) and pass it as `frag`:
 
 ```tsx
-import { HtmlCanvas } from 'refrag';
+import { HtmlShader } from 'refrag';
 import frag from './wave.frag?raw';
 
-<HtmlCanvas frag={frag} style={{ width: 640, height: 420 }}>
+<HtmlShader frag={frag} style={{ width: 640, height: 420 }}>
   <div className="card">...</div>
-</HtmlCanvas>
+</HtmlShader>
 ```
 
 ### Responsive sizing
@@ -76,9 +76,34 @@ import frag from './wave.frag?raw';
 Size the canvas with CSS. The pixel buffer tracks the rendered size automatically via `ResizeObserver`:
 
 ```tsx
-<HtmlCanvas frag={frag} style={{ width: '100%', height: '50vh' }}>
+<HtmlShader frag={frag} style={{ width: '100%', height: '50vh' }}>
   ...
-</HtmlCanvas>
+</HtmlShader>
+```
+
+### Custom uniforms
+
+Pass your own uniforms as an array — changes are picked up each frame with no re-mount. Booleans map to `float` `1.0`/`0.0`:
+
+```tsx
+<HtmlShader
+  frag={frag}
+  uniforms={[
+    { name: 'u_active', value: isActive },       // boolean → float
+    { name: 'u_strength', value: 0.8 },          // float
+    { name: 'u_color', value: [1, 0.5, 0.2] },  // vec3
+  ]}
+>
+  <div className="card">...</div>
+</HtmlShader>
+```
+
+In your shader:
+
+```glsl
+uniform float u_active;
+uniform float u_strength;
+uniform vec3 u_color;
 ```
 
 ---
@@ -126,7 +151,7 @@ void main() {
 
 ## Props
 
-### `HtmlCanvasProps`
+### `HtmlShaderProps`
 
 | Prop | Type | Description |
 |---|---|---|
@@ -134,18 +159,29 @@ void main() {
 | `vert` | `string` | Raw GLSL vertex shader source. Defaults to a full-screen triangle. |
 | `width` | `number \| string` | CSS width (e.g. `640`, `"100%"`). |
 | `height` | `number \| string` | CSS height (e.g. `420`, `"50vh"`). |
+| `uniforms` | `CustomUniform[]` | Custom uniforms uploaded each frame. See [Custom uniforms](#custom-uniforms). |
 | `className` | `string` | Class name applied to the `<canvas>` element. |
 | `style` | `CSSProperties` | Inline style applied to the `<canvas>` element. |
 | `children` | `ReactNode` | HTML content rendered as the WebGL texture. |
 
+### `CustomUniform`
+
+| `value` type | GLSL type |
+|---|---|
+| `boolean` | `float` (`0.0` or `1.0`) |
+| `number` | `float` |
+| `[number, number]` | `vec2` |
+| `[number, number, number]` | `vec3` |
+| `[number, number, number, number]` | `vec4` |
+
 ### Imperative handle (`ref`)
 
 ```tsx
-const ref = useRef<HtmlCanvasHandle>(null);
+const ref = useRef<HtmlShaderHandle>(null);
 
-<HtmlCanvas ref={ref} frag={frag}>
+<HtmlShader ref={ref} frag={frag}>
   ...
-</HtmlCanvas>
+</HtmlShader>
 ```
 
 | Property | Type | Description |
@@ -158,7 +194,7 @@ const ref = useRef<HtmlCanvasHandle>(null);
 
 ## How it works
 
-1. `<HtmlCanvas>` renders a `<canvas>` element and portals its children into the canvas as a direct DOM child (required by the spec).
+1. `<HtmlShader>` renders a `<canvas>` element and portals its children into the canvas as a direct DOM child (required by the spec).
 2. The canvas opts into the HTML-in-Canvas API via `layoutSubtree = true`.
 3. An `onpaint` handler uploads the HTML content to a WebGL texture via `texElementImage2D` whenever the browser repaints it.
 4. A `requestAnimationFrame` loop runs the shader every frame, sampling `u_texture` and writing to the canvas.
