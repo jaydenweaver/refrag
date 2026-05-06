@@ -6,19 +6,18 @@ Zero deps, tree-shakeable React library for the experimental [HTML-in-Canvas API
 
 ## What it does
 
-The HTML-in-Canvas API lets browsers paint DOM subtrees into a WebGL texture. `refrag` exposes the low-level primitives (`layoutSubtree`, `texElementImage2D`, `onpaint`) through an idiomatic React component so you can write this:
+`refrag` abstracts the HTML-in-Canvas API and WebGL boilerplate into a single React component, `HtmlShader`. Pass your HTML as children and a GLSL fragment shader as a prop.
 
 ```tsx
 import frag from './ripple.frag?raw';
 
-<HtmlShader frag={frag}>
+<HtmlShader frag={frag} width={640} height={420}>
   <div className="card">
-    <h1>Hello DOM</h1>
+    <h1>Real HTML</h1>
+    <p>Real CSS. Real accessibility.</p>
   </div>
 </HtmlShader>
 ```
-
-And get real DOM (focusable, selectable, screen-reader accessible) rendered through a WebGL shader.
 
 ---
 
