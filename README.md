@@ -106,8 +106,6 @@ uniform float u_strength;
 uniform vec3 u_color;
 ```
 
-### Uniforms
-
 The following uniforms are wired up automatically and available in every fragment shader:
 
 | Uniform | Type | Description |
