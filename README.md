@@ -9,12 +9,12 @@ Zero deps, tree-shakeable React library for the experimental [HTML-in-Canvas API
 `refrag` abstracts the HTML-in-Canvas API and WebGL boilerplate into a single React component, `HtmlShader`. Pass your HTML as children and a GLSL fragment shader as a prop.
 
 ```tsx
+import { HtmlShader } from 'refrag'
 import frag from './ripple.frag?raw';
 
 <HtmlShader frag={frag} width={640} height={420}>
   <div className="card">
-    <h1>Real HTML</h1>
-    <p>Real CSS. Real accessibility.</p>
+    <h1>Hello DOM</h1>
   </div>
 </HtmlShader>
 ```
