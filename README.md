@@ -173,6 +173,26 @@ const ref = useRef<HtmlShaderHandle>(null);
 
 ---
 
+## refrag vs Three.js HTMLTexture
+
+Three.js [added `HTMLTexture`](https://github.com/mrdoob/three.js/pull/31233) which uses the same underlying API. If you're already in a Three.js / React Three Fiber scene and just need HTML on a mesh, use that. It's the right tool for the job.
+
+**Use `refrag` when:**
+
+- You're building a React app and want to apply shader effects to HTML UI (cards, text, dashboards) with no 3D scene involved.
+- You want a declarative, props-driven API with automatic uniform wiring, resize handling, and React 19 integration.
+- You need the escape hatches (`useHtmlTexture`, raw `gl` access) without pulling in a full 3D engine.
+
+**Use Three.js / R3F when:**
+
+- You have an existing 3D scene and want HTML content on a mesh or billboard in 3D space.
+- You need perspective, lighting, or other 3D transforms on the HTML surface.
+- You're already using `@react-three/fiber` and want to stay in that ecosystem.
+
+The two are not mutually exclusive. `useHtmlTexture` exposes the raw `WebGLTexture` so it can be handed off to any renderer, including Three.js.
+
+---
+
 ## Goals
 
 - **Idiomatic React.** Declarative, composable, TypeScript-first, React 19 compatible, Next.js `"use client"` safe.
@@ -192,6 +212,12 @@ npm run build      # build library (ESM + CJS + types)
 npm run test       # Vitest unit tests
 npm run lint       # ESLint
 ```
+
+---
+
+## Acknowledgements
+
+Thanks to the [WICG HTML-in-Canvas](https://github.com/WICG/html-in-canvas) team for designing and driving this API. Without their work none of this would be possible. Thanks also to the Three.js contributors behind [`HTMLTexture`](https://github.com/mrdoob/three.js/pull/31233), whose implementation was a valuable reference during the development of `useHtmlTexture`.
 
 ---
 
