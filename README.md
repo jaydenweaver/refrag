@@ -38,23 +38,7 @@ npm install refrag
 
 ## Usage
 
-### Basic (no shader)
-
-Without a shader the canvas renders the HTML content as-is:
-
-```tsx
-import { HtmlShader } from 'refrag';
-
-<HtmlShader style={{ width: 640, height: 420 }}>
-  <div style={{ padding: '2rem', background: '#1e293b', color: '#f8fafc' }}>
-    Hello from the DOM
-  </div>
-</HtmlShader>
-```
-
-### With a fragment shader
-
-Import your `.glsl` file as a raw string (Vite `?raw`, webpack `raw-loader`, etc.) and pass it as `frag`:
+Import your `.glsl` file as a raw string (Vite `?raw`, webpack `raw-loader`, etc.) and pass it as `frag` (Inline shaders as strings work as well):
 
 ```tsx
 import { HtmlShader } from 'refrag';
@@ -100,6 +84,16 @@ uniform float u_strength;
 uniform vec3 u_color;
 ```
 
+### Static shaders
+
+If your shader doesn't use `u_time` or animate in any way, set `animated={false}`. The rAF loop won't run and the canvas will only redraw when the HTML content changes.
+
+```tsx
+<HtmlShader frag={frag} animated={false}>
+  <div className="card">...</div>
+</HtmlShader>
+```
+
 The following uniforms are wired up automatically and available in every fragment shader:
 
 | Uniform | Type | Description |
@@ -125,6 +119,7 @@ The following uniforms are wired up automatically and available in every fragmen
 | `width` | `number \| string` | CSS width (e.g. `640`, `"100%"`). |
 | `height` | `number \| string` | CSS height (e.g. `420`, `"50vh"`). |
 | `uniforms` | `CustomUniform[]` | Custom uniforms uploaded each frame. See [Custom uniforms](#custom-uniforms). |
+| `animated` | `boolean` | Runs a continuous rAF loop when `true` (default). Set to `false` for static shaders to only redraw on content changes. |
 | `className` | `string` | Class name applied to the `<canvas>` element. |
 | `style` | `CSSProperties` | Inline style applied to the `<canvas>` element. |
 | `children` | `ReactNode` | HTML content rendered as the WebGL texture. |
@@ -162,14 +157,14 @@ const ref = useRef<HtmlShaderHandle>(null);
 1. `<HtmlShader>` renders a `<canvas>` element and portals its children into the canvas as a direct DOM child (required by the spec).
 2. The canvas opts into the HTML-in-Canvas API via `layoutSubtree = true`.
 3. An `onpaint` handler uploads the HTML content to a WebGL texture via `texElementImage2D` whenever the browser repaints it.
-4. A `requestAnimationFrame` loop runs the shader every frame, sampling `u_texture` and writing to the canvas.
+4. A `requestAnimationFrame` loop runs the shader every frame when `animated={true}` (the default). When `animated={false}`, a single draw is issued on mount and on each `onpaint` instead.
 5. A `ResizeObserver` keeps the pixel buffer in sync with the canvas CSS layout size, multiplied by `devicePixelRatio`.
 
 ---
 
 ## refrag vs Three.js HTMLTexture
 
-Three.js [added `HTMLTexture`](https://github.com/mrdoob/three.js/pull/31233) which uses the same underlying API. If you're already in a Three.js / React Three Fiber scene and just need HTML on a mesh, use that. It's the right tool for the job.
+Three.js added [`HTMLTexture`](https://github.com/mrdoob/three.js/pull/31233) which uses the same underlying API. If you're already in a Three.js / React Three Fiber scene and just need HTML on a mesh, use that. It's the right tool for the job.
 
 **Use `refrag` when:**
 
