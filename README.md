@@ -1,10 +1,6 @@
 # refrag
 
-React library for the experimental [HTML-in-Canvas API](https://github.com/WICG/html-in-canvas).
-
-Renders real, interactive, accessible HTML inside a `<canvas>` as a live WebGL texture. Plug in a GLSL fragment shader to apply effects. The DOM content is available as `u_texture`.
-
-> **Status:** Early-stage / pre-v1. Requires a browser with the HTML-in-Canvas origin trial enabled (Chromium).
+Zero deps, tree-shakeable React library for the experimental [HTML-in-Canvas API](https://github.com/WICG/html-in-canvas).
 
 ---
 
@@ -17,8 +13,7 @@ import frag from './ripple.frag?raw';
 
 <HtmlShader frag={frag}>
   <div className="card">
-    <h1>Real HTML</h1>
-    <p>Real CSS. Real accessibility.</p>
+    <h1>Hello DOM</h1>
   </div>
 </HtmlShader>
 ```
