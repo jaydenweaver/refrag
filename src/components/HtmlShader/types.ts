@@ -66,6 +66,17 @@ export interface HtmlShaderProps {
    */
   uniforms?: CustomUniform[];
 
+  /**
+   * Whether to run a continuous requestAnimationFrame loop.
+   *
+   * Set to `false` for static shaders that don't use `u_time` or any other
+   * time-varying uniforms. The canvas will only redraw when the HTML content
+   * changes (via `onpaint`) rather than every frame.
+   *
+   * @default true
+   */
+  animated?: boolean;
+
   className?: string;
   style?: CSSProperties;
 

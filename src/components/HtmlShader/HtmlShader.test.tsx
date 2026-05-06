@@ -170,6 +170,32 @@ describe("HtmlShader", () => {
     expect(glMock.deleteTexture).toHaveBeenCalled();
     expect(glMock.deleteVertexArray).toHaveBeenCalled();
   });
+
+  it("does not re-queue rAF after drawing when animated={false}", () => {
+    const gl = makeDrawGlMock();
+    let captured: FrameRequestCallback | null = null;
+    const rafSpy = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      captured = cb;
+      return 0;
+    });
+
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      gl as unknown as WebGL2RenderingContext
+    );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(<HtmlShader animated={false} />);
+    });
+
+    const callsBefore = rafSpy.mock.calls.length;
+
+    // Fire the initial draw.
+    act(() => { captured?.(performance.now()); });
+
+    // rAF should not have been re-queued after the draw completed.
+    expect(rafSpy.mock.calls.length).toBe(callsBefore);
+  });
 });
 
 // Full GL mock that includes all methods called inside the draw loop.
