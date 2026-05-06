@@ -1,22 +1,22 @@
 import { expect, test } from "@playwright/experimental-ct-react";
-import { HtmlCanvas } from "../src/components/HtmlCanvas/index.js";
+import { HtmlShader } from "../src/components/HtmlShader/index.js";
 
 test.use({ viewport: { width: 800, height: 600 } });
 
 test("renders a visible canvas element", async ({ mount }) => {
-  const component = await mount(<HtmlCanvas width={400} height={300} />);
+  const component = await mount(<HtmlShader width={400} height={300} />);
   await expect(component.locator("canvas")).toBeVisible();
 });
 
 test("canvas has the correct width and height attributes", async ({ mount }) => {
-  const component = await mount(<HtmlCanvas width={512} height={256} />);
+  const component = await mount(<HtmlShader width={512} height={256} />);
   const canvas = component.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "512");
   await expect(canvas).toHaveAttribute("height", "256");
 });
 
 test("uses default 300×300 when no dimensions are provided", async ({ mount }) => {
-  const component = await mount(<HtmlCanvas />);
+  const component = await mount(<HtmlShader />);
   const canvas = component.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "300");
   await expect(canvas).toHaveAttribute("height", "300");
@@ -24,9 +24,9 @@ test("uses default 300×300 when no dimensions are provided", async ({ mount }) 
 
 test("portals children into the canvas as a direct DOM child", async ({ mount, page }) => {
   const component = await mount(
-    <HtmlCanvas width={400} height={300}>
+    <HtmlShader width={400} height={300}>
       <div data-testid="html-content">Hello from the DOM</div>
-    </HtmlCanvas>
+    </HtmlShader>
   );
 
   // The div must be a descendant of the canvas in the DOM, not a sibling —
@@ -44,9 +44,9 @@ test("canvas draws without console errors when API is available", async ({ mount
   });
 
   await mount(
-    <HtmlCanvas width={400} height={300}>
+    <HtmlShader width={400} height={300}>
       <div style={{ width: "100%", height: "100%", background: "red" }} />
-    </HtmlCanvas>
+    </HtmlShader>
   );
 
   // Filter out errors unrelated to refrag.
@@ -56,9 +56,9 @@ test("canvas draws without console errors when API is available", async ({ mount
 
 test("canvas is non-empty after the HTML content is painted", async ({ mount, page }) => {
   await mount(
-    <HtmlCanvas width={200} height={200}>
+    <HtmlShader width={200} height={200}>
       <div style={{ width: "200px", height: "200px", background: "rgb(255,0,0)" }} />
-    </HtmlCanvas>
+    </HtmlShader>
   );
 
   // Sample the center pixel — it should not be fully transparent once the

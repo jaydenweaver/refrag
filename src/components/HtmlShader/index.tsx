@@ -12,14 +12,14 @@ import { createPortal } from "react-dom";
 import { createProgram } from "../../core/webgl.js";
 import { DEFAULT_FRAG, DEFAULT_VERT } from "../../shaders/defaults.js";
 import type { HtmlInCanvasElement, PaintEvent, WebGL2RenderingContextWithHtml } from "../../types.js";
-import type { CustomUniform, HtmlCanvasHandle, HtmlCanvasProps } from "./types.js";
+import type { CustomUniform, HtmlShaderHandle, HtmlShaderProps } from "./types.js";
 
 // React Compiler safe
 
 // TODO: support custom events passed as props (e.g. scroll, keyboard, gamepad)
 // so users can drive their own uniforms without forking the component.
 
-export type { CustomUniform, HtmlCanvasHandle, HtmlCanvasProps };
+export type { CustomUniform, HtmlShaderHandle, HtmlShaderProps };
 
 type Uniforms = {
   uTexture: WebGLUniformLocation | null;
@@ -54,15 +54,15 @@ type Uniforms = {
  * ```tsx
  * import frag from './ripple.frag?raw';
  *
- * <HtmlCanvas frag={frag} width={800} height={600}>
+ * <HtmlShader frag={frag} width={800} height={600}>
  *   <div className="card">Hello from the DOM</div>
- * </HtmlCanvas>
+ * </HtmlShader>
  * ```
  *
  * @see https://github.com/WICG/html-in-canvas
  */
-export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
-  function HtmlCanvas(
+export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
+  function HtmlShader(
     { frag, vert, width, height, children, className, style, uniforms },
     ref
   ) {
@@ -337,4 +337,4 @@ export const HtmlCanvas = forwardRef<HtmlCanvasHandle, HtmlCanvasProps>(
   }
 );
 
-HtmlCanvas.displayName = "HtmlCanvas";
+HtmlShader.displayName = "HtmlShader";

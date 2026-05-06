@@ -1,6 +1,6 @@
 /**
  * Default passthrough shaders used when no shaders are provided to
- * <HtmlCanvas>. The vertex shader draws a full-screen triangle using the
+ * <HtmlShader>. The vertex shader draws a full-screen triangle using the
  * gl_VertexID trick (no buffer required). The fragment shader samples the
  * HTML texture as-is, making the canvas a 1:1 window into the DOM content.
  */

@@ -13,7 +13,7 @@ import { addPaintListener, removePaintListener } from "./utils.js";
  * the hook manages the canvas child lifecycle, `onpaint` subscription, and
  * GPU upload automatically.
  *
- * For most use cases prefer `<HtmlCanvas>` which handles WebGL setup too.
+ * For most use cases prefer `<HtmlShader>` which handles WebGL setup too.
  *
  * @example
  * ```tsx

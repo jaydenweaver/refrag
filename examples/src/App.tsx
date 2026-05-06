@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { HtmlCanvas } from "refrag";
+import { HtmlShader } from "refrag";
 import glitchFrag from "./shaders/glitch.frag?raw";
 import mouseFrag from "./shaders/mouse.frag?raw";
 
@@ -110,7 +110,7 @@ export function App() {
 
   return (
     <main style={styles.page}>
-      <HtmlCanvas frag={active.frag} width={640} height={420}>
+      <HtmlShader frag={active.frag} width={640} height={420}>
         <div style={styles.card}>
           <span style={styles.eyebrow}>refrag</span>
 
@@ -134,7 +134,7 @@ export function App() {
             ))}
           </div>
         </div>
-      </HtmlCanvas>
+      </HtmlShader>
 
       <div style={styles.controls}>
         {SHADERS.map((s) => (

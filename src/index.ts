@@ -1,2 +1,2 @@
-export { HtmlCanvas } from "./components/index.js";
-export type { HtmlCanvasHandle, HtmlCanvasProps } from "./components/index.js";
+export { HtmlShader } from "./components/index.js";
+export type { CustomUniform, HtmlShaderHandle, HtmlShaderProps } from "./components/index.js";

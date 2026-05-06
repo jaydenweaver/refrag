@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HtmlCanvas } from "./index.js";
+import { HtmlShader } from "./index.js";
 import type { CustomUniform } from "./index.js";
 
 // Prevent the rAF draw loop from running during tests.
@@ -66,11 +66,11 @@ afterEach(() => {
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
 });
 
-describe("HtmlCanvas", () => {
+describe("HtmlShader", () => {
   it("renders a canvas element", () => {
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas />);
+      root.render(<HtmlShader />);
     });
     expect(container.querySelector("canvas")).not.toBeNull();
   });
@@ -78,7 +78,7 @@ describe("HtmlCanvas", () => {
   it("sets no inline width/height by default", () => {
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas />);
+      root.render(<HtmlShader />);
     });
     const canvas = container.querySelector("canvas")!;
     // width/height props are applied as CSS, not HTML attributes.
@@ -90,7 +90,7 @@ describe("HtmlCanvas", () => {
   it("respects explicit width and height props as inline CSS", () => {
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas width={800} height={450} />);
+      root.render(<HtmlShader width={800} height={450} />);
     });
     const canvas = container.querySelector("canvas")!;
     expect(canvas.style.width).toBe("800px");
@@ -103,7 +103,7 @@ describe("HtmlCanvas", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas />);
+      root.render(<HtmlShader />);
     });
 
     expect(error).toHaveBeenCalledWith(
@@ -123,7 +123,7 @@ describe("HtmlCanvas", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas />);
+      root.render(<HtmlShader />);
     });
 
     expect(error).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe("HtmlCanvas", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas />);
+      root.render(<HtmlShader />);
     });
 
     act(() => {
@@ -159,7 +159,7 @@ describe("HtmlCanvas", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlCanvas />);
+      root.render(<HtmlShader />);
     });
 
     act(() => {
@@ -199,7 +199,7 @@ function makeDrawGlMock(uniformLocationOverrides?: Record<string, object>) {
 }
 
 /**
- * Mount HtmlCanvas with a rAF mock that captures (but does not call) the draw
+ * Mount HtmlShader with a rAF mock that captures (but does not call) the draw
  * callback, then returns a `flush()` helper that invokes it exactly once.
  */
 function mountAndCaptureDraw(
@@ -218,7 +218,7 @@ function mountAndCaptureDraw(
 
   act(() => {
     root = createRoot(container);
-    root.render(<HtmlCanvas uniforms={uniforms} />);
+    root.render(<HtmlShader uniforms={uniforms} />);
   });
 
   return {
@@ -228,7 +228,7 @@ function mountAndCaptureDraw(
   };
 }
 
-describe("HtmlCanvas uniforms prop", () => {
+describe("HtmlShader uniforms prop", () => {
   it("calls uniform1f for a number uniform", () => {
     const loc = {};
     const gl = makeDrawGlMock({ u_strength: loc });

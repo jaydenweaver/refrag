@@ -25,7 +25,7 @@ export interface CustomUniform {
   value: boolean | number | readonly [number, number] | readonly [number, number, number] | readonly [number, number, number, number];
 }
 
-export interface HtmlCanvasProps {
+export interface HtmlShaderProps {
   /**
    * Raw GLSL fragment shader source. Import your `.glsl` file with `?raw`:
    * ```ts
@@ -77,7 +77,7 @@ export interface HtmlCanvasProps {
 }
 
 /** Imperative handle exposed via `ref` for advanced control. */
-export interface HtmlCanvasHandle {
+export interface HtmlShaderHandle {
   /** The underlying `<canvas>` element. */
   canvas: HTMLCanvasElement | null;
   /** The WebGL2 rendering context. */
