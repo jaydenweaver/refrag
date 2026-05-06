@@ -193,7 +193,7 @@ The two are not mutually exclusive. `useHtmlTexture` exposes the raw `WebGLTextu
 - **Zero boilerplate.** Sane defaults, automatic uniform wiring, no WebGL setup required.
 - **HiDPI correct.** Pixel buffer always matches `devicePixelRatio`.
 - **Accessible.** Real DOM is preserved so screen readers, focus, and tab order work as normal.
-- **Tree-shakable.** Zero runtime dependencies beyond React.
+- **Tree-shakeable.** Zero runtime dependencies beyond React.
 - **Escape hatches.** Imperative `ref`, raw `gl` access, custom vertex shaders.
 
 ---
