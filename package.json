@@ -1,7 +1,7 @@
 {
   "name": "refrag",
   "version": "0.0.1",
-  "description": "React wrapper for the HTML-in-Canvas API",
+  "description": "Render React components with GLSL shaders using WebGL.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -66,6 +66,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jayden/refrag"
+    "url": "https://github.com/jaydenweaver/refrag"
   }
 }
