@@ -1,6 +1,6 @@
 {
   "name": "refrag",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Render React components with GLSL shaders using WebGL.",
   "type": "module",
   "main": "./dist/index.cjs",
