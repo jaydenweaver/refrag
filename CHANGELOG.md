@@ -4,6 +4,7 @@
 
 ### Added
 - `HtmlShader` now renders children directly (no canvas, no shader) when the HTML-in-Canvas API is unavailable, so content remains visible in unsupported browsers.
+- Documentation site scaffolded under `docs/` (Docusaurus v3) covering Getting Started, HtmlShader, useHtmlTexture, and Browser Support.
 
 ### Fixed
 - `onpaint` now re-uploads the texture when a **descendant** of the content element repaints (e.g. a scrolling child, a hover state change). Previously only a repaint of the root content element itself was detected.
