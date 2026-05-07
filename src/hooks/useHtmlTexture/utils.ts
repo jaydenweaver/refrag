@@ -20,7 +20,7 @@ export function addPaintListener(
       const listeners = paintRegistry.get(canvas);
       if (!listeners) return;
       for (const [el, cb] of listeners) {
-        if (event.changedElements.includes(el)) cb();
+        if (event.changedElements.some((changed) => el === changed || el.contains(changed))) cb();
       }
     };
   }

@@ -5,6 +5,5 @@ dist/
 .DS_Store
 coverage/
 .claude/
-package-lock.json
 playwright-report/
 test-results/

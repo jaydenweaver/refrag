@@ -1,0 +1,26 @@
+{
+  "id": "getting-started",
+  "title": "Getting Started",
+  "description": "refrag is a React library that brings real HTML, CSS, and accessible DOM elements inside a `` using the experimental HTML-in-Canvas API. Your component tree becomes a live WebGL texture — styled, interactive, and screen-reader-accessible — ready to use in 2D, WebGL, or WebGPU rendering contexts.",
+  "source": "@site/docs/getting-started.md",
+  "sourceDirName": ".",
+  "slug": "/",
+  "permalink": "/refrag/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/jaydenweaver/refrag/edit/main/docs/docs/getting-started.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "id": "getting-started",
+    "title": "Getting Started",
+    "sidebar_position": 1,
+    "slug": "/"
+  },
+  "sidebar": "docs",
+  "next": {
+    "title": "HtmlShader",
+    "permalink": "/refrag/html-shader"
+  }
+}

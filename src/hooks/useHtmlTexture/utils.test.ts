@@ -7,7 +7,7 @@ function makeMockCanvas(): HtmlInCanvasElement {
 }
 
 function makeMockElement(): HTMLElement {
-  return {} as HTMLElement;
+  return document.createElement("div");
 }
 
 function firePaint(canvas: HtmlInCanvasElement, changedElements: Element[]) {
@@ -60,6 +60,46 @@ describe("addPaintListener", () => {
     firePaint(canvas, [elementA as unknown as Element]);
     expect(handlerA).toHaveBeenCalledOnce();
     expect(handlerB).not.toHaveBeenCalled();
+  });
+});
+
+describe("descendant repaint (scroll / child state change)", () => {
+  it("calls the handler when a descendant appears in changedElements", () => {
+    const canvas = makeMockCanvas();
+    const parent = document.createElement("div");
+    const child = document.createElement("span");
+    parent.appendChild(child);
+    const handler = vi.fn();
+    addPaintListener(canvas, parent, handler);
+    firePaint(canvas, [child]);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("does not call the handler for an element outside the registered subtree", () => {
+    const canvas = makeMockCanvas();
+    const registered = document.createElement("div");
+    const unrelated = document.createElement("div");
+    const handler = vi.fn();
+    addPaintListener(canvas, registered, handler);
+    firePaint(canvas, [unrelated]);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("calls both handlers when each has a descendant in changedElements", () => {
+    const canvas = makeMockCanvas();
+    const parentA = document.createElement("div");
+    const childA = document.createElement("span");
+    parentA.appendChild(childA);
+    const parentB = document.createElement("div");
+    const childB = document.createElement("span");
+    parentB.appendChild(childB);
+    const handlerA = vi.fn();
+    const handlerB = vi.fn();
+    addPaintListener(canvas, parentA, handlerA);
+    addPaintListener(canvas, parentB, handlerB);
+    firePaint(canvas, [childA, childB]);
+    expect(handlerA).toHaveBeenCalledOnce();
+    expect(handlerB).toHaveBeenCalledOnce();
   });
 });
 

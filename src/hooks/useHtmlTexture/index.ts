@@ -62,7 +62,14 @@ export function useHtmlTexture(gl: WebGL2RenderingContext | null): UseHtmlTextur
       const t = textureRef.current;
       if (!t) return;
       gl.bindTexture(gl.TEXTURE_2D, t);
-      glHtml.texElementImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, element);
+      try {
+        glHtml.texElementImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, element);
+      } catch {
+        // Paint record evicted (composited scroll/transform). Self-heal on next paint.
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        if ("requestPaint" in canvas) canvas.requestPaint();
+        return;
+      }
       gl.bindTexture(gl.TEXTURE_2D, null);
       // Only update state once so consumers that key on texture identity
       // don't re-render on every paint.
