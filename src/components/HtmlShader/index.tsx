@@ -19,6 +19,15 @@ import type { CustomUniform, HtmlShaderHandle, HtmlShaderProps } from "./types.j
 // TODO: support custom events passed as props (e.g. scroll, keyboard, gamepad)
 // so users can drive their own uniforms without forking the component.
 
+// Probe the browser's capability at call time — no module-level cache so that
+// test mocks applied to HTMLCanvasElement.prototype.getContext are respected.
+function isApiSupported(): boolean {
+  if (typeof document === "undefined") return true; // SSR: defer to client
+  const probe = document.createElement("canvas");
+  const gl = probe.getContext("webgl2");
+  return gl !== null && "texElementImage2D" in gl;
+}
+
 export type { CustomUniform, HtmlShaderHandle, HtmlShaderProps };
 
 type Uniforms = {
@@ -40,6 +49,10 @@ type Uniforms = {
  * The pixel buffer and wrapper div automatically track the canvas's
  * rendered size via ResizeObserver, so the canvas is always sharp on
  * HiDPI screens and responds to layout changes.
+ *
+ * When the HTML-in-Canvas API is not available the component renders its
+ * children directly with no canvas or shader applied, so content remains
+ * visible in unsupported browsers.
  *
  * Standard uniforms provided automatically:
  * - `uniform sampler2D u_texture`   — the HTML content
@@ -66,6 +79,11 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
     { frag, vert, width, height, children, className, style, uniforms, animated = true },
     ref
   ) {
+    // isApiSupported() reflects a permanent browser capability — it never changes
+    // for the lifetime of the page, so hook call order is stable per instance.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    if (!isApiSupported()) return <>{children}</>;
+
     // Two-phase mount: canvas ref first, then portal content ref.
     // Both must be in the DOM before WebGL setup can proceed.
     const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
