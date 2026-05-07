@@ -1,0 +1,74 @@
+{
+  "/refrag/__docusaurus/debug-32c": {
+    "__comp": "__comp---theme-debug-config-23-a-2ff",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    }
+  },
+  "/refrag/__docusaurus/debug/config-fd3": {
+    "__comp": "__comp---theme-debug-config-23-a-2ff",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    }
+  },
+  "/refrag/__docusaurus/debug/content-546": {
+    "__comp": "__comp---theme-debug-contentba-8-ce7",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    },
+    "__props": "__props---refrag-docusaurus-debug-content-4-c-9-d61"
+  },
+  "/refrag/__docusaurus/debug/globalData-fe7": {
+    "__comp": "__comp---theme-debug-global-dataede-0fa",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    }
+  },
+  "/refrag/__docusaurus/debug/metadata-761": {
+    "__comp": "__comp---theme-debug-site-metadata-68-e-3d4",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    }
+  },
+  "/refrag/__docusaurus/debug/registry-5aa": {
+    "__comp": "__comp---theme-debug-registry-679-501",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    }
+  },
+  "/refrag/__docusaurus/debug/routes-e2b": {
+    "__comp": "__comp---theme-debug-routes-946-699",
+    "__context": {
+      "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
+    }
+  },
+  "/refrag/-7dd": {
+    "__comp": "__comp---theme-docs-root-5-e-9-0b6",
+    "__context": {
+      "plugin": "plugin---refrag-aba-1f5"
+    }
+  },
+  "/refrag/-829": {
+    "__comp": "__comp---theme-doc-version-roota-7-b-5de",
+    "__props": "__props---refrag-b-06-be5"
+  },
+  "/refrag/-00f": {
+    "__comp": "__comp---theme-doc-roota-94-67a"
+  },
+  "/refrag/browser-support-34e": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---refrag-browser-supportd-99-e82"
+  },
+  "/refrag/html-shader-68e": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---refrag-html-shadera-66-7b7"
+  },
+  "/refrag/use-html-texture-f2d": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---refrag-use-html-texture-087-688"
+  },
+  "/refrag/-7d3": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---refrag-d-58-409"
+  }
+}
