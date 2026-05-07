@@ -173,16 +173,25 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       // Re-upload the HTML content to GPU whenever the browser repaints it.
       // In static mode, also schedule a one-shot draw so the new texture is rendered.
       htmlCanvas.onpaint = (event: PaintEvent) => {
-        if (!event.changedElements.includes(contentEl)) return;
+        if (!event.changedElements.some((el) => contentEl === el || contentEl.contains(el))) return;
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        glHtml.texElementImage2D(
-          gl.TEXTURE_2D,
-          0,
-          gl.RGBA,
-          gl.RGBA,
-          gl.UNSIGNED_BYTE,
-          contentEl
-        );
+        try {
+          glHtml.texElementImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            contentEl
+          );
+        } catch {
+          // The paint record was evicted between onpaint firing and the upload
+          // (e.g. a composited scroll/transform sidesteps the paint cycle).
+          // Keep the previous frame's texture and request another paint to self-heal.
+          if ("requestPaint" in htmlCanvas) htmlCanvas.requestPaint();
+          gl.bindTexture(gl.TEXTURE_2D, null);
+          return;
+        }
         gl.bindTexture(gl.TEXTURE_2D, null);
         if (!animatedRef.current) rafId = requestAnimationFrame(draw);
       };
