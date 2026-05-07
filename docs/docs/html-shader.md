@@ -104,6 +104,78 @@ If the browser does not support the HTML-in-Canvas API, `HtmlShader` renders its
 </HtmlShader>
 ```
 
+## Known limitations
+
+### `overflow: scroll` inside canvas content
+
+The HTML-in-Canvas spec enforces `contain: paint` on every element passed to `texElementImage2D`. Per the spec: *"Overflowing content (both layout and ink overflow) is clipped to the element's border box."* Additionally, Chrome promotes `overflow: scroll` containers with overflowing content to GPU compositing layers, which `texElementImage2D` captures from CPU paint operations only — leaving the scroll container blank.
+
+**Workaround:** drive scrolling from a native page scroll instead of an in-canvas scroll container. Use `position: fixed` on the canvas, let the page body scroll normally, then offset the inner content with `marginTop: -window.scrollY` and call `requestPaint()` on each scroll event.
+
+```tsx
+export function App() {
+  const shaderRef = useRef<HtmlShaderHandle>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
+
+  // Size the spacer so the page has native scroll distance.
+  useEffect(() => {
+    const ro = new ResizeObserver(() => {
+      if (spacerRef.current && innerRef.current) {
+        const scrollable = innerRef.current.scrollHeight - window.innerHeight;
+        spacerRef.current.style.height = `${Math.max(0, scrollable)}px`;
+      }
+    });
+    if (innerRef.current) ro.observe(innerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Follow native page scroll without overflow:scroll.
+  useEffect(() => {
+    const onScroll = () => {
+      if (innerRef.current)
+        innerRef.current.style.marginTop = `-${window.scrollY}px`;
+      shaderRef.current?.requestPaint();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <>
+      {/* Makes the page scrollable — real scrollbar, keyboard, momentum. */}
+      <div ref={spacerRef} aria-hidden style={{ pointerEvents: "none" }} />
+      <HtmlShader
+        ref={shaderRef}
+        frag={myFrag}
+        style={{ position: "fixed", inset: 0, width: "100%", height: "100%" }}
+      >
+        <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+          <div ref={innerRef}>
+            {/* your content */}
+          </div>
+        </div>
+      </HtmlShader>
+    </>
+  );
+}
+```
+
+This gives users a real browser scrollbar, keyboard shortcuts (arrows, space, Page Down), and trackpad/touch momentum — identical to native scroll behavior.
+
+### Other spec-level restrictions
+
+The same `contain: paint` rule applies to anything that creates a composited sublayer or overflows the border box. Per the WICG spec and current Chromium implementation:
+
+| Feature | Behaviour |
+|---------|-----------|
+| CSS `transform` on canvas children | **Ignored for drawing** (does not affect texture output) |
+| `backdrop-filter` | Not applied (open Chromium bug) |
+| `mix-blend-mode` | Applied incorrectly / twice (open Chromium bug) |
+| `will-change: transform` | Composited layer dropped from texture |
+| Cross-origin embedded content | Silently omitted (privacy requirement) |
+| `overflow: scroll` / `overflow: auto` | Blank — composited scroll layer not captured |
+
 ## Full example — ripple shader
 
 ```tsx
