@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - run: npm test -- --run
+
+      - run: npm run build
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline)
+          else
+            COMMITS=$(git log "${LAST_TAG}..HEAD" --oneline)
+          fi
+
+          if echo "$COMMITS" | grep -qiE "BREAKING.CHANGE|!:"; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$COMMITS" | grep -qE "^[a-f0-9]+ feat(\(.+\))?!?:"; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump version and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version ${{ steps.bump.outputs.type }} -m "chore: release v%s"
+          git push --follow-tags
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
