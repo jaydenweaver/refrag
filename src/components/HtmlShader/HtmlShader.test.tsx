@@ -171,6 +171,70 @@ describe("HtmlShader", () => {
     expect(glMock.deleteVertexArray).toHaveBeenCalled();
   });
 
+  it("re-uploads texture when a descendant of contentEl repaints", () => {
+    const gl = makeGlMock();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      gl as unknown as WebGL2RenderingContext
+    );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(<HtmlShader />);
+    });
+
+    const canvas = container.querySelector("canvas")!;
+    // contentEl is the div portaled directly into the canvas.
+    const contentEl = canvas.firstElementChild as HTMLElement;
+    const child = document.createElement("span");
+    contentEl.appendChild(child);
+
+    (gl.texElementImage2D as ReturnType<typeof vi.fn>).mockClear();
+
+    act(() => {
+      (canvas as any).onpaint?.({ changedElements: [child] });
+    });
+
+    expect(gl.texElementImage2D).toHaveBeenCalledOnce();
+  });
+
+  it("calls requestPaint and skips rAF when texElementImage2D throws (evicted paint record)", () => {
+    const gl = makeGlMock();
+    (gl.texElementImage2D as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error("paint record evicted");
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      gl as unknown as WebGL2RenderingContext
+    );
+
+    // Add requestPaint before render so the canvas has it when the effect runs.
+    const requestPaintSpy = vi.fn();
+    (HTMLCanvasElement.prototype as any).requestPaint = requestPaintSpy;
+
+    act(() => {
+      root = createRoot(container);
+      root.render(<HtmlShader animated={false} />);
+    });
+
+    const canvas = container.querySelector("canvas")!;
+    const contentEl = canvas.firstElementChild as HTMLElement;
+
+    // Clear calls from the initial mount requestPaint.
+    requestPaintSpy.mockClear();
+
+    const rafSpy = vi.spyOn(window, "requestAnimationFrame");
+
+    act(() => {
+      (canvas as any).onpaint?.({ changedElements: [contentEl] });
+    });
+
+    // Must self-heal by requesting another paint.
+    expect(requestPaintSpy).toHaveBeenCalledOnce();
+    // Must NOT schedule a draw frame — the upload was skipped.
+    expect(rafSpy).not.toHaveBeenCalled();
+
+    delete (HTMLCanvasElement.prototype as any).requestPaint;
+  });
+
   it("does not re-queue rAF after drawing when animated={false}", () => {
     const gl = makeDrawGlMock();
     let captured: FrameRequestCallback | null = null;
