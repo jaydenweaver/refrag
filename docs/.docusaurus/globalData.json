@@ -1,0 +1,48 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/refrag/",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/refrag/",
+          "mainDocId": "getting-started",
+          "docs": [
+            {
+              "id": "browser-support",
+              "path": "/refrag/browser-support",
+              "sidebar": "docs"
+            },
+            {
+              "id": "getting-started",
+              "path": "/refrag/",
+              "sidebar": "docs"
+            },
+            {
+              "id": "html-shader",
+              "path": "/refrag/html-shader",
+              "sidebar": "docs"
+            },
+            {
+              "id": "use-html-texture",
+              "path": "/refrag/use-html-texture",
+              "sidebar": "docs"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "docs": {
+              "link": {
+                "path": "/refrag/",
+                "label": "getting-started"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

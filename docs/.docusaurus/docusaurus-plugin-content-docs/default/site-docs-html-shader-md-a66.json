@@ -1,0 +1,29 @@
+{
+  "id": "html-shader",
+  "title": "HtmlShader",
+  "description": "HtmlShader is the primary component in refrag. It mounts a ``, renders your React children as a live DOM subtree inside it via the HTML-in-Canvas API, and exposes that subtree as a WebGL texture that your fragment shader can sample.",
+  "source": "@site/docs/html-shader.md",
+  "sourceDirName": ".",
+  "slug": "/html-shader",
+  "permalink": "/refrag/html-shader",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/jaydenweaver/refrag/edit/main/docs/docs/html-shader.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 2,
+  "frontMatter": {
+    "id": "html-shader",
+    "title": "HtmlShader",
+    "sidebar_position": 2
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Getting Started",
+    "permalink": "/refrag/"
+  },
+  "next": {
+    "title": "useHtmlTexture",
+    "permalink": "/refrag/use-html-texture"
+  }
+}

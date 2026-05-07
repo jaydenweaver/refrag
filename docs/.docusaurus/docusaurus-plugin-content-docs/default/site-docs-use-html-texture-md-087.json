@@ -1,0 +1,29 @@
+{
+  "id": "use-html-texture",
+  "title": "useHtmlTexture",
+  "description": "useHtmlTexture is an escape-hatch hook for when you need to drive your own WebGL context, Three.js scene, or any other rendering pipeline with an HTML texture.",
+  "source": "@site/docs/use-html-texture.md",
+  "sourceDirName": ".",
+  "slug": "/use-html-texture",
+  "permalink": "/refrag/use-html-texture",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/jaydenweaver/refrag/edit/main/docs/docs/use-html-texture.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "id": "use-html-texture",
+    "title": "useHtmlTexture",
+    "sidebar_position": 3
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "HtmlShader",
+    "permalink": "/refrag/html-shader"
+  },
+  "next": {
+    "title": "Browser Support",
+    "permalink": "/refrag/browser-support"
+  }
+}

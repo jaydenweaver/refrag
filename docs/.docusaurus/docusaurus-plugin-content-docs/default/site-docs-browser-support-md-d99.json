@@ -1,0 +1,25 @@
+{
+  "id": "browser-support",
+  "title": "Browser Support",
+  "description": "The HTML-in-Canvas API is an experimental WICG proposal currently implemented behind a flag in Chromium. It is not yet available in stable Chrome, Firefox, or Safari.",
+  "source": "@site/docs/browser-support.md",
+  "sourceDirName": ".",
+  "slug": "/browser-support",
+  "permalink": "/refrag/browser-support",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/jaydenweaver/refrag/edit/main/docs/docs/browser-support.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "id": "browser-support",
+    "title": "Browser Support",
+    "sidebar_position": 4
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "useHtmlTexture",
+    "permalink": "/refrag/use-html-texture"
+  }
+}
