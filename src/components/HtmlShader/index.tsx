@@ -250,15 +250,6 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       canvasEl.addEventListener("pointerenter", onPointerEnter);
       canvasEl.addEventListener("pointerleave", onPointerLeave);
 
-      // scroll events on composited overflow:scroll children bypass the browser
-      // paint cycle, so onpaint never fires for them. Capture scroll on the
-      // content subtree (scroll doesn't bubble, capture phase is required) and
-      // call requestPaint() to force a texture re-upload after each scroll tick.
-      const onScroll = () => {
-        if ("requestPaint" in htmlCanvas) htmlCanvas.requestPaint();
-      };
-      contentEl.addEventListener("scroll", onScroll, { capture: true });
-
       // Continuous draw loop so time-based shader effects animate smoothly.
       const startTime = performance.now();
       let rafId: number;
@@ -324,7 +315,6 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         canvasEl.removeEventListener("pointerup", onPointerUp);
         canvasEl.removeEventListener("pointerenter", onPointerEnter);
         canvasEl.removeEventListener("pointerleave", onPointerLeave);
-        contentEl.removeEventListener("scroll", onScroll, { capture: true });
         htmlCanvas.onpaint = null;
         gl.deleteTexture(texture);
         gl.deleteVertexArray(vao);
