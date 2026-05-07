@@ -79,11 +79,6 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
     { frag, vert, width, height, children, className, style, uniforms, animated = true },
     ref
   ) {
-    // isApiSupported() reflects a permanent browser capability — it never changes
-    // for the lifetime of the page, so hook call order is stable per instance.
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    if (!isApiSupported()) return <>{children}</>;
-
     // Two-phase mount: canvas ref first, then portal content ref.
     // Both must be in the DOM before WebGL setup can proceed.
     const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -270,6 +265,7 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
+        // eslint-disable-next-line react-compiler/react-compiler -- gl.useProgram is a WebGL method, not a React hook
         gl.useProgram(program);
         gl.bindVertexArray(vao);
 
@@ -357,6 +353,9 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         uniformsRef.current = null;
       };
     }, [canvasEl, contentEl, frag, vert]);
+
+    // All hooks have been called — safe to return early now.
+    if (!isApiSupported()) return <>{children}</>;
 
     return (
       <>

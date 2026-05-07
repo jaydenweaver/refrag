@@ -54,6 +54,7 @@ export function useHtmlTexture(gl: WebGL2RenderingContext | null): UseHtmlTextur
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
 
+    // eslint-disable-next-line react-compiler/react-compiler -- intentional DOM mutation
     if (!canvas.layoutSubtree) canvas.layoutSubtree = true;
 
     if (element.parentNode !== canvas) canvas.appendChild(element);
