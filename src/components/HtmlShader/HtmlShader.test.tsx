@@ -68,6 +68,9 @@ afterEach(() => {
 
 describe("HtmlShader", () => {
   it("renders a canvas element", () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      makeGlMock() as unknown as WebGL2RenderingContext
+    );
     act(() => {
       root = createRoot(container);
       root.render(<HtmlShader />);
@@ -76,6 +79,9 @@ describe("HtmlShader", () => {
   });
 
   it("sets no inline width/height by default", () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      makeGlMock() as unknown as WebGL2RenderingContext
+    );
     act(() => {
       root = createRoot(container);
       root.render(<HtmlShader />);
@@ -88,6 +94,9 @@ describe("HtmlShader", () => {
   });
 
   it("respects explicit width and height props as inline CSS", () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      makeGlMock() as unknown as WebGL2RenderingContext
+    );
     act(() => {
       root = createRoot(container);
       root.render(<HtmlShader width={800} height={450} />);
@@ -97,38 +106,32 @@ describe("HtmlShader", () => {
     expect(canvas.style.height).toBe("450px");
   });
 
-  it("logs an error when WebGL2 is unavailable", () => {
+  it("renders children directly when WebGL2 is unavailable", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlShader />);
+      root.render(<HtmlShader><span id="child" /></HtmlShader>);
     });
 
-    expect(error).toHaveBeenCalledWith(
-      expect.stringContaining("[refrag] WebGL2 is not supported")
-    );
+    expect(container.querySelector("canvas")).toBeNull();
+    expect(container.querySelector("#child")).not.toBeNull();
   });
 
-  it("logs an error when the HTML-in-Canvas API is unavailable", () => {
+  it("renders children directly when the HTML-in-Canvas API is unavailable", () => {
     const glWithoutApi = makeGlMock();
-    // Remove texElementImage2D to simulate unsupported browser.
     delete (glWithoutApi as Record<string, unknown>)["texElementImage2D"];
-
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
       glWithoutApi as unknown as WebGL2RenderingContext
     );
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     act(() => {
       root = createRoot(container);
-      root.render(<HtmlShader />);
+      root.render(<HtmlShader><span id="child" /></HtmlShader>);
     });
 
-    expect(error).toHaveBeenCalledWith(
-      expect.stringContaining("[refrag] The HTML-in-Canvas API is not available")
-    );
+    expect(container.querySelector("canvas")).toBeNull();
+    expect(container.querySelector("#child")).not.toBeNull();
   });
 
   it("cancels the rAF loop on unmount", () => {
@@ -169,6 +172,70 @@ describe("HtmlShader", () => {
     expect(glMock.deleteProgram).toHaveBeenCalled();
     expect(glMock.deleteTexture).toHaveBeenCalled();
     expect(glMock.deleteVertexArray).toHaveBeenCalled();
+  });
+
+  it("re-uploads texture when a descendant of contentEl repaints", () => {
+    const gl = makeGlMock();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      gl as unknown as WebGL2RenderingContext
+    );
+
+    act(() => {
+      root = createRoot(container);
+      root.render(<HtmlShader />);
+    });
+
+    const canvas = container.querySelector("canvas")!;
+    // contentEl is the div portaled directly into the canvas.
+    const contentEl = canvas.firstElementChild as HTMLElement;
+    const child = document.createElement("span");
+    contentEl.appendChild(child);
+
+    (gl.texElementImage2D as ReturnType<typeof vi.fn>).mockClear();
+
+    act(() => {
+      (canvas as any).onpaint?.({ changedElements: [child] });
+    });
+
+    expect(gl.texElementImage2D).toHaveBeenCalledOnce();
+  });
+
+  it("calls requestPaint and skips rAF when texElementImage2D throws (evicted paint record)", () => {
+    const gl = makeGlMock();
+    (gl.texElementImage2D as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error("paint record evicted");
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      gl as unknown as WebGL2RenderingContext
+    );
+
+    // Add requestPaint before render so the canvas has it when the effect runs.
+    const requestPaintSpy = vi.fn();
+    (HTMLCanvasElement.prototype as any).requestPaint = requestPaintSpy;
+
+    act(() => {
+      root = createRoot(container);
+      root.render(<HtmlShader animated={false} />);
+    });
+
+    const canvas = container.querySelector("canvas")!;
+    const contentEl = canvas.firstElementChild as HTMLElement;
+
+    // Clear calls from the initial mount requestPaint.
+    requestPaintSpy.mockClear();
+
+    const rafSpy = vi.spyOn(window, "requestAnimationFrame");
+
+    act(() => {
+      (canvas as any).onpaint?.({ changedElements: [contentEl] });
+    });
+
+    // Must self-heal by requesting another paint.
+    expect(requestPaintSpy).toHaveBeenCalledOnce();
+    // Must NOT schedule a draw frame — the upload was skipped.
+    expect(rafSpy).not.toHaveBeenCalled();
+
+    delete (HTMLCanvasElement.prototype as any).requestPaint;
   });
 
   it("does not re-queue rAF after drawing when animated={false}", () => {
