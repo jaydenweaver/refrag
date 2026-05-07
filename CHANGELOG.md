@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.0.6]
 
 ### Added
 - `HtmlShader` now renders children directly (no canvas, no shader) when the HTML-in-Canvas API is unavailable, so content remains visible in unsupported browsers.
