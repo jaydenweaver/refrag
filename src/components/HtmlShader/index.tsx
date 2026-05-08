@@ -10,22 +10,37 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { createProgram } from "../../core/webgl.js";
-import { DEFAULT_FRAG, DEFAULT_VERT } from "../../shaders/defaults.js";
+import { COMPOSITOR_FRAG, COMPOSITOR_VERT, DEFAULT_FRAG, DEFAULT_VERT } from "../../shaders/defaults.js";
 import type { HtmlInCanvasElement, PaintEvent, WebGL2RenderingContextWithHtml } from "../../types.js";
 import type { CustomUniform, HtmlShaderHandle, HtmlShaderProps } from "./types.js";
+
+// Maximum number of child <canvas> elements that can be composited per frame.
+const MAX_CANVASES = 8;
+
+type CompositorUniforms = {
+  uTexture: WebGLUniformLocation | null;
+  uCanvasCount: WebGLUniformLocation | null;
+  uCanvases: (WebGLUniformLocation | null)[];
+  uCanvasRects: (WebGLUniformLocation | null)[];
+};
 
 // React Compiler safe
 
 // TODO: support custom events passed as props (e.g. scroll, keyboard, gamepad)
 // so users can drive their own uniforms without forking the component.
 
-// Probe the browser's capability at call time — no module-level cache so that
-// test mocks applied to HTMLCanvasElement.prototype.getContext are respected.
+// Cached at module level — probing on every render leaks WebGL contexts.
+// The probe context is explicitly released so it doesn't count against the limit.
+let _apiSupported: boolean | null = null;
+
 function isApiSupported(): boolean {
+  if (_apiSupported !== null) return _apiSupported;
   if (typeof document === "undefined") return true; // SSR: defer to client
   const probe = document.createElement("canvas");
-  const gl = probe.getContext("webgl2");
-  return gl !== null && "texElementImage2D" in gl;
+  const gl = probe.getContext("webgl2", { preserveDrawingBuffer: true });
+  _apiSupported = gl !== null && "texElementImage2D" in gl;
+  gl?.getExtension("WEBGL_lose_context")?.loseContext();
+  return _apiSupported;
 }
 
 export type { CustomUniform, HtmlShaderHandle, HtmlShaderProps };
@@ -164,7 +179,7 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
     useLayoutEffect(() => {
       if (!canvasEl || !contentEl) return;
 
-      const gl = canvasEl.getContext("webgl2");
+      const gl = canvasEl.getContext("webgl2", { preserveDrawingBuffer: true });
       if (!gl) {
         console.error("[refrag] WebGL2 is not supported in this browser.");
         return;
@@ -184,13 +199,100 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       // Empty VAO required by WebGL2 for vertex-ID-based draws.
       const vao = gl.createVertexArray();
 
-      // Create and configure the texture once; content is uploaded on each paint.
+      // Create and configure the HTML texture once; content is uploaded on each paint.
       const texture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.bindTexture(gl.TEXTURE_2D, null);
+
+      // --- Child canvas compositing ---
+      // Child <canvas> elements appear black in texElementImage2D because their
+      // WebGL/2D content lives on a separate GPU layer. We detect them via
+      // MutationObserver, upload their pixels each frame via texImage2D, and
+      // composite them into the HTML texture in a pre-pass before running the
+      // user's shader.
+
+      // FBO + render texture for the compositor output.
+      const fbo = gl.createFramebuffer();
+      const fboTexture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, fboTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTexture, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+      // Compile the fixed compositor program (never changes, not user-provided).
+      let compProgram: WebGLProgram | null = null;
+      let compUniforms: CompositorUniforms | null = null;
+      try {
+        compProgram = createProgram(gl, COMPOSITOR_VERT, COMPOSITOR_FRAG);
+        compUniforms = {
+          uTexture: gl.getUniformLocation(compProgram, "u_texture"),
+          uCanvasCount: gl.getUniformLocation(compProgram, "u_canvas_count"),
+          uCanvases: Array.from({ length: MAX_CANVASES }, (_, i) =>
+            gl.getUniformLocation(compProgram!, `u_canvases[${i}]`)
+          ),
+          uCanvasRects: Array.from({ length: MAX_CANVASES }, (_, i) =>
+            gl.getUniformLocation(compProgram!, `u_canvas_rects[${i}]`)
+          ),
+        };
+      } catch (err) {
+        console.error("[refrag] Failed to compile compositor shader:", err);
+      }
+
+      // Tracks the current FBO texture dimensions to resize it when the canvas grows.
+      let fboTexW = 1;
+      let fboTexH = 1;
+
+      // Mutable list of detected child canvases and their per-canvas textures.
+      let childCanvases: HTMLCanvasElement[] = [];
+      const canvasTextures = new Map<HTMLCanvasElement, WebGLTexture>();
+
+      const addChildCanvas = (canvas: HTMLCanvasElement) => {
+        if (canvasTextures.has(canvas)) return;
+        const tex = gl.createTexture();
+        if (!tex) return;
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        canvasTextures.set(canvas, tex);
+        childCanvases = [...childCanvases, canvas];
+      };
+
+      const removeChildCanvas = (canvas: HTMLCanvasElement) => {
+        const tex = canvasTextures.get(canvas);
+        if (tex) gl.deleteTexture(tex);
+        canvasTextures.delete(canvas);
+        childCanvases = childCanvases.filter((c) => c !== canvas);
+      };
+
+      // Scan children already in the DOM at mount time (handles SSR-hydrated trees).
+      contentEl.querySelectorAll("canvas").forEach((c) => addChildCanvas(c as HTMLCanvasElement));
+
+      const childObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node instanceof HTMLCanvasElement) addChildCanvas(node);
+            else if (node instanceof Element)
+              node.querySelectorAll("canvas").forEach((c) => addChildCanvas(c as HTMLCanvasElement));
+          }
+          for (const node of mutation.removedNodes) {
+            if (node instanceof HTMLCanvasElement) removeChildCanvas(node);
+            else if (node instanceof Element)
+              node.querySelectorAll("canvas").forEach((c) => removeChildCanvas(c as HTMLCanvasElement));
+          }
+        }
+      });
+      childObserver.observe(contentEl, { childList: true, subtree: true });
+      // --- End child canvas compositing setup ---
 
       // Opt the canvas into HTML-in-Canvas layout.
       const htmlCanvas = canvasEl as HtmlInCanvasElement;
@@ -261,6 +363,78 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
 
         const t = (performance.now() - startTime) / 1000;
 
+        // Determine which texture feeds the user's shader.
+        // When child canvases are present, run a compositor pre-pass that
+        // fills the black holes left by texElementImage2D and outputs to an FBO.
+        let userTexture = texture;
+
+        if (childCanvases.length > 0 && compProgram && compUniforms && fbo && fboTexture) {
+          // Upload each child canvas's current pixel content.
+          for (const childCanvas of childCanvases) {
+            const tex = canvasTextures.get(childCanvas);
+            if (!tex) continue;
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, childCanvas);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+          }
+
+          // Resize FBO texture to match the canvas if needed.
+          if (fboTexW !== canvasEl.width || fboTexH !== canvasEl.height) {
+            gl.bindTexture(gl.TEXTURE_2D, fboTexture);
+            gl.texImage2D(
+              gl.TEXTURE_2D, 0, gl.RGBA,
+              canvasEl.width, canvasEl.height, 0,
+              gl.RGBA, gl.UNSIGNED_BYTE, null
+            );
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            fboTexW = canvasEl.width;
+            fboTexH = canvasEl.height;
+          }
+
+          // Compositor pass: HTML texture + child canvas textures → FBO.
+          gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+          gl.viewport(0, 0, canvasEl.width, canvasEl.height);
+          // eslint-disable-next-line react-compiler/react-compiler -- gl.useProgram is a WebGL method, not a React hook
+          gl.useProgram(compProgram);
+          gl.bindVertexArray(vao);
+
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.uniform1i(compUniforms.uTexture, 0);
+
+          const contentRect = contentEl.getBoundingClientRect();
+          const count = Math.min(childCanvases.length, MAX_CANVASES);
+          gl.uniform1i(compUniforms.uCanvasCount, count);
+
+          for (let i = 0; i < count; i++) {
+            const childCanvas = childCanvases[i];
+            if (!childCanvas) continue;
+            const tex = canvasTextures.get(childCanvas);
+            if (!tex) continue;
+
+            gl.activeTexture(gl.TEXTURE0 + 1 + i);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.uniform1i(compUniforms.uCanvases[i] ?? null, 1 + i);
+
+            // UV rect of this child canvas relative to contentEl, in top-left-origin space.
+            const cr = childCanvas.getBoundingClientRect();
+            gl.uniform4f(
+              compUniforms.uCanvasRects[i] ?? null,
+              (cr.left - contentRect.left) / contentRect.width,
+              (cr.top - contentRect.top) / contentRect.height,
+              cr.width / contentRect.width,
+              cr.height / contentRect.height
+            );
+          }
+
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+          gl.bindVertexArray(null);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+          userTexture = fboTexture;
+        }
+
+        // User shader pass.
         gl.viewport(0, 0, canvasEl.width, canvasEl.height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -270,7 +444,7 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         gl.bindVertexArray(vao);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.bindTexture(gl.TEXTURE_2D, userTexture);
         gl.uniform1i(uniforms.uTexture, 0);
         gl.uniform2f(uniforms.uResolution, canvasEl.width, canvasEl.height);
         gl.uniform1f(uniforms.uTime, t);
@@ -312,6 +486,11 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         canvasEl.removeEventListener("pointerenter", onPointerEnter);
         canvasEl.removeEventListener("pointerleave", onPointerLeave);
         htmlCanvas.onpaint = null;
+        childObserver.disconnect();
+        for (const tex of canvasTextures.values()) gl.deleteTexture(tex);
+        gl.deleteFramebuffer(fbo);
+        gl.deleteTexture(fboTexture);
+        if (compProgram) gl.deleteProgram(compProgram);
         gl.deleteTexture(texture);
         gl.deleteVertexArray(vao);
         glRef.current = null;
