@@ -84,6 +84,21 @@ uniform float u_strength;
 uniform vec3 u_color;
 ```
 
+### Child canvas elements
+
+Child `<canvas>` elements in your HTML content are composited automatically. Standard HTML-in-Canvas (`texElementImage2D`) cannot capture GPU-layer canvas content and renders them black, so `HtmlShader` detects child canvases via `MutationObserver`, uploads their pixels each frame via `texImage2D`, and blends them into the HTML texture in a pre-pass before your shader runs.
+
+```tsx
+<HtmlShader frag={frag} width={640} height={480}>
+  <div>
+    <canvas ref={myCanvasRef} width={320} height={240} />
+    <p>The canvas above will render correctly in the shader.</p>
+  </div>
+</HtmlShader>
+```
+
+Up to 8 child canvases are supported simultaneously. Note that each child canvas incurs a full CPU→GPU texture upload every frame — prefer `animated={false}` or update the canvas content sparingly if the shader doesn't need to animate.
+
 ### Static shaders
 
 If your shader doesn't use `u_time` or animate in any way, set `animated={false}`. The rAF loop won't run and the canvas will only redraw when the HTML content changes.
@@ -157,8 +172,9 @@ const ref = useRef<HtmlShaderHandle>(null);
 1. `<HtmlShader>` renders a `<canvas>` element and portals its children into the canvas as a direct DOM child (required by the spec).
 2. The canvas opts into the HTML-in-Canvas API via `layoutSubtree = true`.
 3. An `onpaint` handler uploads the HTML content to a WebGL texture via `texElementImage2D` whenever the browser repaints it.
-4. A `requestAnimationFrame` loop runs the shader every frame when `animated={true}` (the default). When `animated={false}`, a single draw is issued on mount and on each `onpaint` instead.
-5. A `ResizeObserver` keeps the pixel buffer in sync with the canvas CSS layout size, multiplied by `devicePixelRatio`.
+4. If child `<canvas>` elements are present, a compositor pre-pass runs first: each child canvas is uploaded via `texImage2D` and blended into the HTML texture in an FBO, replacing the black areas left by `texElementImage2D`. The result feeds your shader instead of the raw HTML texture.
+5. A `requestAnimationFrame` loop runs the shader every frame when `animated={true}` (the default). When `animated={false}`, a single draw is issued on mount and on each `onpaint` instead.
+6. A `ResizeObserver` keeps the pixel buffer in sync with the canvas CSS layout size, multiplied by `devicePixelRatio`.
 
 ---
 
