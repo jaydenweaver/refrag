@@ -12,7 +12,7 @@ sidebar_position: 2
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `frag` | `string` | passthrough | GLSL fragment shader source. |
+| `frag` | `string \| string[]` | passthrough | GLSL fragment shader source, or an array for multi-pass rendering. |
 | `vert` | `string` | passthrough | GLSL vertex shader source. |
 | `width` | `number` | `300` | Canvas width in CSS pixels. |
 | `height` | `number` | `300` | Canvas height in CSS pixels. |
@@ -90,6 +90,27 @@ shaderRef.current?.requestPaint();
   <MyUI />
 </HtmlShader>
 ```
+
+## Multi-pass rendering
+
+Pass an array of fragment shader strings to `frag` to chain multiple passes. Each shader receives the previous pass's output as `u_texture`. All automatic uniforms and custom uniforms are available in every pass.
+
+```tsx
+import { HtmlShader } from "refrag";
+import blur from "./blur.frag?raw";
+import grain from "./grain.frag?raw";
+
+<HtmlShader frag={[blur, grain]} width={640} height={480}>
+  <MyUI />
+</HtmlShader>
+```
+
+Passes are applied in array order: `blur` samples the HTML texture, then `grain` samples blur's output.
+
+**Implementation details:**
+- Intermediate passes render into ping-pong FBOs (no per-frame allocation).
+- Each shader is compiled twice: once without Y-flip for FBO targets and once with Y-flip for the final screen pass, preventing double-inversion in the chain.
+- Switching between a single shader and an array does not remount the component.
 
 ## Child canvas elements
 

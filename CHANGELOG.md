@@ -3,6 +3,9 @@
 ## [0.2.0]
 
 ### Added
+- `frag` now accepts `string | string[]`. Pass an array to chain multiple fragment shaders in order — each pass receives the previous pass's output as `u_texture`. All automatic uniforms (`u_time`, `u_mouse`, `u_resolution`, etc.) and custom uniforms are available in every pass.
+- Ping-pong FBOs for intermediate passes. Intermediate passes render into alternating off-screen framebuffers (no allocation per frame); only the final pass writes to the screen.
+- Each shader in a multi-pass chain is compiled with two vertex variants: one without Y-flip for intermediate FBO passes and one with Y-flip for the final screen pass, preventing the double-inversion that would otherwise occur.
 - `HtmlShader` now composites child `<canvas>` elements correctly. Previously they appeared black because `texElementImage2D` cannot capture GPU-layer canvas content. Child canvases are now detected via `MutationObserver`, uploaded each frame via `texImage2D`, and blended into the HTML texture in a compositor pre-pass (FBO) before the user shader runs. Up to 8 child canvases are supported simultaneously.
 
 ## [0.1.0]

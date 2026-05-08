@@ -84,6 +84,21 @@ uniform float u_strength;
 uniform vec3 u_color;
 ```
 
+### Multi-pass shaders
+
+Pass an array to `frag` to chain multiple fragment shaders. Each pass receives the previous pass's output as `u_texture` — all automatic uniforms and custom uniforms are available at every stage.
+
+```tsx
+import blur from './blur.frag?raw';
+import grain from './grain.frag?raw';
+
+<HtmlShader frag={[blur, grain]} width={640} height={480}>
+  <MyUI />
+</HtmlShader>
+```
+
+Passes run in array order. Intermediate passes render into ping-pong FBOs; only the final pass writes to screen.
+
 ### Child canvas elements
 
 Child `<canvas>` elements in your HTML content are composited automatically. Standard HTML-in-Canvas (`texElementImage2D`) cannot capture GPU-layer canvas content and renders them black, so `HtmlShader` detects child canvases via `MutationObserver`, uploads their pixels each frame via `texImage2D`, and blends them into the HTML texture in a pre-pass before your shader runs.
@@ -129,7 +144,7 @@ The following uniforms are wired up automatically and available in every fragmen
 
 | Prop | Type | Description |
 |---|---|---|
-| `frag` | `string` | Raw GLSL fragment shader source. Defaults to a passthrough. |
+| `frag` | `string \| string[]` | Raw GLSL fragment shader source, or an array for multi-pass chaining. Defaults to a passthrough. |
 | `vert` | `string` | Raw GLSL vertex shader source. Defaults to a full-screen triangle. |
 | `width` | `number \| string` | CSS width (e.g. `640`, `"100%"`). |
 | `height` | `number \| string` | CSS height (e.g. `420`, `"50vh"`). |
