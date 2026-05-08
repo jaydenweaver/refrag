@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `HtmlShader` now composites child `<canvas>` elements correctly. Previously they appeared black because `texElementImage2D` cannot capture GPU-layer canvas content. Child canvases are now detected via `MutationObserver`, uploaded each frame via `texImage2D`, and blended into the HTML texture in a compositor pre-pass (FBO) before the user shader runs. Up to 8 child canvases are supported simultaneously.
+
 ## [0.0.6]
 
 ### Added

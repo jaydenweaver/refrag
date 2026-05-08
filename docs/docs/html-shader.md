@@ -91,6 +91,29 @@ shaderRef.current?.requestPaint();
 </HtmlShader>
 ```
 
+## Child canvas elements
+
+Child `<canvas>` elements inside your `HtmlShader` content are composited automatically. The HTML-in-Canvas API (`texElementImage2D`) cannot capture GPU-layer canvas content, so those elements normally appear black. `HtmlShader` works around this transparently:
+
+1. A `MutationObserver` watches the content subtree for `<canvas>` additions and removals.
+2. Each frame, child canvas pixel data is uploaded to its own `WebGLTexture` via `texImage2D`.
+3. A compositor pre-pass (FBO) blends the child textures into the HTML texture at their correct positions before your shader runs.
+
+```tsx
+<HtmlShader frag={frag} width={640} height={480}>
+  <div>
+    <canvas ref={myCanvasRef} width={320} height={240} />
+    <p>Caption text</p>
+  </div>
+</HtmlShader>
+```
+
+**Limits and performance notes:**
+- Up to 8 child canvases are composited per frame.
+- Each child canvas incurs a full `texImage2D` upload every frame regardless of whether it changed.
+- `getBoundingClientRect` is called once per child canvas per frame for UV positioning.
+- If your child canvas is static or low-frequency, prefer `animated={false}` to avoid unnecessary uploads.
+
 ## Fallback behaviour
 
 If the browser does not support the HTML-in-Canvas API, `HtmlShader` renders its `children` directly without a canvas. This means your UI remains visible and functional in unsupported environments — the shader effect is simply absent.
@@ -169,6 +192,7 @@ The same `contain: paint` rule applies to anything that creates a composited sub
 
 | Feature | Behaviour |
 |---------|-----------|
+| Child `<canvas>` elements | Composited automatically via FBO pre-pass — renders correctly |
 | CSS `transform` on canvas children | **Ignored for drawing** (does not affect texture output) |
 | `backdrop-filter` | Not applied (open Chromium bug) |
 | `mix-blend-mode` | Applied incorrectly / twice (open Chromium bug) |
