@@ -55,6 +55,30 @@ type Uniforms = {
   uDpr: WebGLUniformLocation | null;
 };
 
+// Each frag shader is compiled with two vertex shaders:
+//   fboProgram    — uses COMPOSITOR_VERT (no Y flip) for intermediate FBO passes
+//   screenProgram — uses DEFAULT_VERT (Y flip) for the final pass to screen
+// This prevents the double-flip that would occur if DEFAULT_VERT were used for
+// both FBO writes and screen writes in a multi-pass chain.
+type ShaderPass = {
+  fboProgram: WebGLProgram;
+  screenProgram: WebGLProgram;
+  fboUniforms: Uniforms;
+  screenUniforms: Uniforms;
+};
+
+function buildUniforms(gl: WebGL2RenderingContext, program: WebGLProgram): Uniforms {
+  return {
+    uTexture: gl.getUniformLocation(program, "u_texture"),
+    uResolution: gl.getUniformLocation(program, "u_resolution"),
+    uTime: gl.getUniformLocation(program, "u_time"),
+    uMouse: gl.getUniformLocation(program, "u_mouse"),
+    uMouseDown: gl.getUniformLocation(program, "u_mouse_down"),
+    uMouseInside: gl.getUniformLocation(program, "u_mouse_inside"),
+    uDpr: gl.getUniformLocation(program, "u_dpr"),
+  };
+}
+
 /**
  * Renders HTML children as a WebGL texture on a `<canvas>` using the
  * HTML-in-Canvas API. Plug in your own fragment shader to apply effects —
@@ -103,10 +127,8 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
     const onContentRef = useCallback((node: HTMLDivElement | null) => setContentEl(node), []);
 
     const glRef = useRef<WebGL2RenderingContext | null>(null);
-    // Shader program and uniform locations are kept in refs so the draw loop
-    // and the shader-recompile effect can share them without restarting the loop.
-    const programRef = useRef<WebGLProgram | null>(null);
-    const uniformsRef = useRef<Uniforms | null>(null);
+    // Compiled shader passes, shared between the recompile effect and draw loop.
+    const passesRef = useRef<ShaderPass[]>([]);
     // Normalized [0,1] pointer position within the canvas. Starts centered.
     const mouseRef = useRef<readonly [number, number]>([0.5, 0.5]);
     // 1.0 while any pointer button is pressed, 0.0 otherwise.
@@ -226,6 +248,25 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTexture, 0);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+      // Ping-pong FBOs used when frag is an array (multi-pass shader chain).
+      // Two buffers allow pass N's output to be pass N+1's input without a copy.
+      const makePassFbo = () => {
+        const tex = gl.createTexture()!;
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        const fbo = gl.createFramebuffer()!;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        return { fbo, tex };
+      };
+      const passA = makePassFbo();
+      const passB = makePassFbo();
 
       // Compile the fixed compositor program (never changes, not user-provided).
       let compProgram: WebGLProgram | null = null;
@@ -352,18 +393,29 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       let rafId: number;
 
       const draw = () => {
-        const program = programRef.current;
-        const uniforms = uniformsRef.current;
+        const passes = passesRef.current;
 
-        // Skip draw until the shader program is compiled.
-        if (!program || !uniforms) {
+        // Skip draw until at least one shader pass is compiled.
+        if (passes.length === 0) {
           rafId = requestAnimationFrame(draw);
           return;
         }
 
         const t = (performance.now() - startTime) / 1000;
 
-        // Determine which texture feeds the user's shader.
+        // Resize all render textures when the canvas size changes.
+        if (fboTexW !== canvasEl.width || fboTexH !== canvasEl.height) {
+          for (const tex of [fboTexture, passA.tex, passB.tex]) {
+            if (!tex) continue;
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvasEl.width, canvasEl.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+          }
+          fboTexW = canvasEl.width;
+          fboTexH = canvasEl.height;
+        }
+
+        // Determine which texture feeds the user's shaders.
         // When child canvases are present, run a compositor pre-pass that
         // fills the black holes left by texElementImage2D and outputs to an FBO.
         let userTexture = texture;
@@ -376,19 +428,6 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
             gl.bindTexture(gl.TEXTURE_2D, tex);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, childCanvas);
             gl.bindTexture(gl.TEXTURE_2D, null);
-          }
-
-          // Resize FBO texture to match the canvas if needed.
-          if (fboTexW !== canvasEl.width || fboTexH !== canvasEl.height) {
-            gl.bindTexture(gl.TEXTURE_2D, fboTexture);
-            gl.texImage2D(
-              gl.TEXTURE_2D, 0, gl.RGBA,
-              canvasEl.width, canvasEl.height, 0,
-              gl.RGBA, gl.UNSIGNED_BYTE, null
-            );
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            fboTexW = canvasEl.width;
-            fboTexH = canvasEl.height;
           }
 
           // Compositor pass: HTML texture + child canvas textures → FBO.
@@ -434,45 +473,61 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
           userTexture = fboTexture;
         }
 
-        // User shader pass.
-        gl.viewport(0, 0, canvasEl.width, canvasEl.height);
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        // User shader pass(es).
+        // Intermediate passes write to ping-pong FBOs using fboProgram (no Y flip).
+        // The final pass writes to screen using screenProgram (Y flip).
+        const pingPongFbos = [passA.fbo, passB.fbo] as const;
+        const pingPongTexs = [passA.tex, passB.tex] as const;
 
-        // eslint-disable-next-line react-compiler/react-compiler -- gl.useProgram is a WebGL method, not a React hook
-        gl.useProgram(program);
-        gl.bindVertexArray(vao);
+        let inputTex = userTexture;
+        for (let i = 0; i < passes.length; i++) {
+          const pass = passes[i]!;
+          const isLast = i === passes.length - 1;
+          const program = isLast ? pass.screenProgram : pass.fboProgram;
+          const uniforms = isLast ? pass.screenUniforms : pass.fboUniforms;
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, userTexture);
-        gl.uniform1i(uniforms.uTexture, 0);
-        gl.uniform2f(uniforms.uResolution, canvasEl.width, canvasEl.height);
-        gl.uniform1f(uniforms.uTime, t);
-        gl.uniform2f(uniforms.uMouse, mouseRef.current[0], mouseRef.current[1]);
-        gl.uniform1f(uniforms.uMouseDown, mouseDownRef.current);
-        gl.uniform1f(uniforms.uMouseInside, mouseInsideRef.current);
-        gl.uniform1f(uniforms.uDpr, window.devicePixelRatio || 1);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, isLast ? null : pingPongFbos[i % 2]!);
+          gl.viewport(0, 0, canvasEl.width, canvasEl.height);
+          gl.clearColor(0, 0, 0, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
 
-        for (const u of customUniformsRef.current) {
-          const loc = gl.getUniformLocation(program, u.name);
-          if (!loc) continue;
-          const v = u.value;
-          if (typeof v === "boolean") {
-            gl.uniform1f(loc, v ? 1.0 : 0.0);
-          } else if (typeof v === "number") {
-            gl.uniform1f(loc, v);
-          } else if (v.length === 2) {
-            gl.uniform2f(loc, v[0], v[1]);
-          } else if (v.length === 3) {
-            gl.uniform3f(loc, v[0], v[1], v[2]);
-          } else if (v.length === 4) {
-            gl.uniform4f(loc, v[0], v[1], v[2], v[3]);
+          // eslint-disable-next-line react-compiler/react-compiler -- gl.useProgram is a WebGL method, not a React hook
+          gl.useProgram(program);
+          gl.bindVertexArray(vao);
+
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, inputTex);
+          gl.uniform1i(uniforms.uTexture, 0);
+          gl.uniform2f(uniforms.uResolution, canvasEl.width, canvasEl.height);
+          gl.uniform1f(uniforms.uTime, t);
+          gl.uniform2f(uniforms.uMouse, mouseRef.current[0], mouseRef.current[1]);
+          gl.uniform1f(uniforms.uMouseDown, mouseDownRef.current);
+          gl.uniform1f(uniforms.uMouseInside, mouseInsideRef.current);
+          gl.uniform1f(uniforms.uDpr, window.devicePixelRatio || 1);
+
+          for (const u of customUniformsRef.current) {
+            const loc = gl.getUniformLocation(program, u.name);
+            if (!loc) continue;
+            const v = u.value;
+            if (typeof v === "boolean") {
+              gl.uniform1f(loc, v ? 1.0 : 0.0);
+            } else if (typeof v === "number") {
+              gl.uniform1f(loc, v);
+            } else if (v.length === 2) {
+              gl.uniform2f(loc, v[0], v[1]);
+            } else if (v.length === 3) {
+              gl.uniform3f(loc, v[0], v[1], v[2]);
+            } else if (v.length === 4) {
+              gl.uniform4f(loc, v[0], v[1], v[2], v[3]);
+            }
           }
+
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+          gl.bindVertexArray(null);
+
+          if (!isLast) inputTex = pingPongTexs[i % 2]!;
         }
 
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-        gl.bindVertexArray(null);
         if (animatedRef.current) rafId = requestAnimationFrame(draw);
       };
 
@@ -490,6 +545,10 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
         for (const tex of canvasTextures.values()) gl.deleteTexture(tex);
         gl.deleteFramebuffer(fbo);
         gl.deleteTexture(fboTexture);
+        gl.deleteFramebuffer(passA.fbo);
+        gl.deleteTexture(passA.tex);
+        gl.deleteFramebuffer(passB.fbo);
+        gl.deleteTexture(passB.tex);
         if (compProgram) gl.deleteProgram(compProgram);
         gl.deleteTexture(texture);
         gl.deleteVertexArray(vao);
@@ -497,39 +556,49 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
       };
     }, [canvasEl, contentEl]);
 
-    // Recompile the shader program when frag or vert changes.
-    // Runs after the core effect, so glRef is already populated.
-    // The rAF loop continues uninterrupted — it just picks up the new program.
+    // Recompile shader passes when frag or vert changes.
+    // Each frag is compiled twice: once with COMPOSITOR_VERT (no Y flip, for FBO
+    // intermediate passes) and once with DEFAULT_VERT (Y flip, for the final
+    // screen pass). If the user provides a custom vert both variants use it.
     useLayoutEffect(() => {
       const gl = glRef.current;
       if (!gl) return;
 
-      let program: WebGLProgram;
+      const frags = Array.isArray(frag) ? frag : [frag ?? DEFAULT_FRAG];
+      const passes: ShaderPass[] = [];
       try {
-        program = createProgram(gl, vert ?? DEFAULT_VERT, frag ?? DEFAULT_FRAG);
+        for (const f of frags) {
+          const fboProgram    = createProgram(gl, vert ?? COMPOSITOR_VERT, f);
+          const screenProgram = createProgram(gl, vert ?? DEFAULT_VERT, f);
+          passes.push({
+            fboProgram,
+            screenProgram,
+            fboUniforms:    buildUniforms(gl, fboProgram),
+            screenUniforms: buildUniforms(gl, screenProgram),
+          });
+        }
       } catch (err) {
         console.error(err);
+        for (const p of passes) {
+          gl.deleteProgram(p.fboProgram);
+          gl.deleteProgram(p.screenProgram);
+        }
         return;
       }
 
-      const prev = programRef.current;
-      programRef.current = program;
-      uniformsRef.current = {
-        uTexture: gl.getUniformLocation(program, "u_texture"),
-        uResolution: gl.getUniformLocation(program, "u_resolution"),
-        uTime: gl.getUniformLocation(program, "u_time"),
-        uMouse: gl.getUniformLocation(program, "u_mouse"),
-        uMouseDown: gl.getUniformLocation(program, "u_mouse_down"),
-        uMouseInside: gl.getUniformLocation(program, "u_mouse_inside"),
-        uDpr: gl.getUniformLocation(program, "u_dpr"),
-      };
-
-      if (prev) gl.deleteProgram(prev);
+      const prev = passesRef.current;
+      passesRef.current = passes;
+      for (const p of prev) {
+        gl.deleteProgram(p.fboProgram);
+        gl.deleteProgram(p.screenProgram);
+      }
 
       return () => {
-        gl.deleteProgram(program);
-        programRef.current = null;
-        uniformsRef.current = null;
+        for (const p of passes) {
+          gl.deleteProgram(p.fboProgram);
+          gl.deleteProgram(p.screenProgram);
+        }
+        passesRef.current = [];
       };
     }, [canvasEl, contentEl, frag, vert]);
 
