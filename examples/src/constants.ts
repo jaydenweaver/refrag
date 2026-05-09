@@ -1,8 +1,9 @@
 import crtFrag        from "./shaders/crt.frag?raw";
 import ditherFrag     from "./shaders/dither.frag?raw";
 import liquidwarpFrag from "./shaders/liquidwarp.frag?raw";
-import mouseFrag      from "./shaders/mouse.frag?raw";
-import particlesFrag  from "./shaders/particles.frag?raw";
+import pixelateFrag   from "./shaders/pixelate.frag?raw";
+import magnifyFrag    from "./shaders/magnify.frag?raw";
+import disintegrateFrag from "./shaders/disintegrate.frag?raw";
 import shockwaveFrag  from "./shaders/shockwave.frag?raw";
 import type { ShaderEntry } from "./types";
 
@@ -18,7 +19,8 @@ export const INITIAL_SHADERS: ShaderEntry[] = [
   { key: "crt",        label: "CRT",       frag: crtFrag },
   { key: "dither",     label: "dither",    frag: ditherFrag },
   { key: "liquidwarp", label: "liquid",    frag: liquidwarpFrag },
-  { key: "mouse",      label: "mouse",     frag: mouseFrag },
-  { key: "particles",  label: "particles", frag: particlesFrag },
+  { key: "pixelate",   label: "pixelate",  frag: pixelateFrag },
+  { key: "magnify",    label: "magnify",   frag: magnifyFrag },
+  { key: "disintegrate", label: "disintegrate", frag: disintegrateFrag },
   { key: "shockwave",  label: "shockwave", frag: shockwaveFrag },
 ];
