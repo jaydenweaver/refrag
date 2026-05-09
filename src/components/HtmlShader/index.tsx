@@ -43,6 +43,7 @@ function isApiSupported(): boolean {
   return _apiSupported;
 }
 
+export { isApiSupported };
 export type { CustomUniform, HtmlShaderHandle, HtmlShaderProps };
 
 type Uniforms = {
@@ -603,7 +604,14 @@ export const HtmlShader = forwardRef<HtmlShaderHandle, HtmlShaderProps>(
     }, [canvasEl, contentEl, frag, vert]);
 
     // All hooks have been called — safe to return early now.
-    if (!isApiSupported()) return <>{children}</>;
+    // Mirror the canvas's style/className/width/height so layout is preserved.
+    if (!isApiSupported()) {
+      return (
+        <div className={className} style={{ display: "block", width, height, ...style }}>
+          {children}
+        </div>
+      );
+    }
 
     return (
       <>
