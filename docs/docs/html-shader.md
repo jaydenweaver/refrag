@@ -137,7 +137,7 @@ Child `<canvas>` elements inside your `HtmlShader` content are composited automa
 
 ## Fallback behaviour
 
-If the browser does not support the HTML-in-Canvas API, `HtmlShader` renders its `children` directly without a canvas. This means your UI remains visible and functional in unsupported environments — the shader effect is simply absent.
+If the browser does not support the HTML-in-Canvas API, `HtmlShader` renders its `children` directly without a canvas, preserving `style`, `className`, `width`, and `height` on a wrapper `<div>`. Your UI remains visible and functional — the shader effect is simply absent.
 
 ```tsx
 // Works in all browsers — shows plain DOM on unsupported ones
@@ -146,6 +146,19 @@ If the browser does not support the HTML-in-Canvas API, `HtmlShader` renders its
     <h1>Still readable without WebGL magic</h1>
   </article>
 </HtmlShader>
+```
+
+Use `isApiSupported` to detect the fallback state and conditionally render UI:
+
+```tsx
+import { isApiSupported } from "refrag";
+
+function Banner() {
+  if (!isApiSupported()) {
+    return <p style={{ color: "red" }}>Shaders unavailable — enable the HTML-in-Canvas flag.</p>;
+  }
+  return null;
+}
 ```
 
 ## Known limitations

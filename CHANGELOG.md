@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `isApiSupported()` is now exported from `refrag`. Probes for `texElementImage2D` on a temporary WebGL2 context (released immediately so it does not count against the browser limit) and caches the result. Use it to detect fallback state and conditionally render UI.
+- Fallback wrapper now mirrors the `style`, `className`, `width`, and `height` props of `HtmlShader`, so layout is preserved (e.g. `position: fixed`) in unsupported browsers.
+
 ## [0.2.0]
 
 ### Added

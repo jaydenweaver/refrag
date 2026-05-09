@@ -1,7 +1,7 @@
 ---
 id: browser-support
 title: Browser Support
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Browser Support
@@ -81,7 +81,19 @@ if (!isSupported) {
 
 ## Feature detection
 
-You can detect support manually if needed:
+Use the exported `isApiSupported` helper to detect support at runtime:
+
+```ts
+import { isApiSupported } from "refrag";
+
+if (!isApiSupported()) {
+  // API unavailable — shaders will not be applied
+}
+```
+
+`isApiSupported` probes a temporary WebGL2 context for `texElementImage2D`, then releases it so it does not count against the browser's context limit. The result is cached after the first call.
+
+Alternatively, detect support manually:
 
 ```ts
 const isSupported =

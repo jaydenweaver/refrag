@@ -82,4 +82,5 @@ import ripple from "./ripple.glsl?raw";
 
 - Full props, uniforms, and ref API → [HtmlShader](/html-shader)
 - Custom WebGL / Three.js setups → [useHtmlTexture](/use-html-texture)
+- Detecting API support at runtime → [isApiSupported](/is-api-supported)
 - Origin trial and flags → [Browser Support](/browser-support)
