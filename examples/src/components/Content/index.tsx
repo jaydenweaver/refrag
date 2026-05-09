@@ -1,8 +1,11 @@
+import { isApiSupported } from "refrag";
 import { AnimatedCanvas } from "./AnimatedCanvas";
 import { ResearchQuotes } from "./ResearchQuotes";
 import { TEXT_STYLE } from "./styles";
 
 export function Content() {
+  const fallback = !isApiSupported();
+
   return (
     <>
       <h1
@@ -15,6 +18,15 @@ export function Content() {
       >
         text
       </h1>
+
+      {fallback && (
+        <p style={{ color: "red", fontFamily: "monospace", fontSize: "0.9rem", margin: "0.5rem 0 0" }}>
+          HTML-in-Canvas API not enabled. Enable the experimental flag at:<br/>
+          <code style={{ color: "white", background: "rgba(255,255,255,0.1)", borderRadius: "4px", padding: "2px 6px" }}>
+            chrome://flags/#canvas-draw-element
+          </code>
+        </p>
+      )}
 
       <div style={{ ...TEXT_STYLE, display: "flex", flexDirection: "column", alignItems: "center", gap: "2rem", padding: "0", maxWidth: "50ch" }}>
         <div>
