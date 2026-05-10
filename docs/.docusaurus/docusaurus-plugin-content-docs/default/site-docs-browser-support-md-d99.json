@@ -11,11 +11,11 @@
   "editUrl": "https://github.com/jaydenweaver/refrag/edit/main/docs/docs/browser-support.md",
   "tags": [],
   "version": "current",
-  "sidebarPosition": 4,
+  "sidebarPosition": 5,
   "frontMatter": {
     "id": "browser-support",
     "title": "Browser Support",
-    "sidebar_position": 4
+    "sidebar_position": 5
   },
   "sidebar": "docs",
   "previous": {

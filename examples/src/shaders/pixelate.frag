@@ -7,7 +7,10 @@ in vec2 v_uv;
 out vec4 out_color;
 
 void main() {
-  float tileSize = 12.0;
+  float tileSize  = 12.0; // px — pixel block size
+  float gapFactor = 0.06; // 0–0.5 — relative gap width between tiles
+  float gapDark   = 0.55; // 0–1 — brightness of the gap
+
   vec2 tiles = u_resolution / tileSize;
 
   // Snap UV to the centre of the nearest tile
@@ -16,10 +19,9 @@ void main() {
 
   // Subtle gap between tiles
   vec2 f = fract(v_uv * tiles);
-  float border = 0.06;
-  float inside = step(border, f.x) * step(border, f.y) *
-                 step(f.x, 1.0 - border) * step(f.y, 1.0 - border);
-  col.rgb *= mix(0.55, 1.0, inside);
+  float inside = step(gapFactor, f.x) * step(gapFactor, f.y) *
+                 step(f.x, 1.0 - gapFactor) * step(f.y, 1.0 - gapFactor);
+  col.rgb *= mix(gapDark, 1.0, inside);
 
   out_color = col;
 }

@@ -22,11 +22,14 @@ float bayer(ivec2 p) {
 }
 
 void main() {
+  float levelsNormal = 8.0; // colour levels when pointer is away
+  float levelsActive = 2.0; // colour levels when pointer is over / clicking
+
   vec4 c = texture(u_texture, v_uv);
   float t = bayer(ivec2(v_uv * u_resolution));
 
   // Fewer levels when mouse is over the canvas for a more dramatic effect
-  float levels = mix(8.0, 2.0, u_mouse_inside * 0.5 + u_mouse_down * 0.5);
+  float levels = mix(levelsNormal, levelsActive, u_mouse_inside * 0.5 + u_mouse_down * 0.5);
 
   vec3 dithered = floor(c.rgb * levels + t) / levels;
   out_color = vec4(dithered, c.a);

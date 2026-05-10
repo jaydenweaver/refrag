@@ -24,16 +24,20 @@ float noise(vec2 p) {
 }
 
 void main() {
+  float speed    = 0.25;  // animation speed multiplier
+  float scale    = 2.5;   // noise frequency (higher = smaller ripples)
+  float strength = 0.007; // 0–0.05 — warp displacement amount
+
   vec2 uv = v_uv;
-  float t = u_time * 0.25;
+  float t = u_time * speed;
 
   vec2 warp;
-  warp.x = noise(uv * 2.5 + vec2(t, t * 0.6));
-  warp.y = noise(uv * 2.5 + vec2(-t * 0.7, t) + 3.7);
+  warp.x = noise(uv * scale + vec2(t, t * 0.6));
+  warp.y = noise(uv * scale + vec2(-t * 0.7, t) + 3.7);
   warp += 0.4 * vec2(
-    noise(uv * 5.5 + vec2(t * 1.4, -t * 0.5)),
-    noise(uv * 5.5 + vec2(t * 0.6,  t * 1.2) + 8.3)
+    noise(uv * scale * 2.2 + vec2(t * 1.4, -t * 0.5)),
+    noise(uv * scale * 2.2 + vec2(t * 0.6,  t * 1.2) + 8.3)
   );
 
-  out_color = texture(u_texture, clamp(uv + warp * 0.007, 0.001, 0.999));
+  out_color = texture(u_texture, clamp(uv + warp * strength, 0.001, 0.999));
 }

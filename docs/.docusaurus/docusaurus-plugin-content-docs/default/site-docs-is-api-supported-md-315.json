@@ -1,0 +1,20 @@
+{
+  "id": "is-api-supported",
+  "title": "isApiSupported",
+  "description": "A utility function that detects whether the HTML-in-Canvas API is available in the current browser.",
+  "source": "@site/docs/is-api-supported.md",
+  "sourceDirName": ".",
+  "slug": "/is-api-supported",
+  "permalink": "/refrag/is-api-supported",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/jaydenweaver/refrag/edit/main/docs/docs/is-api-supported.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 4,
+  "frontMatter": {
+    "id": "is-api-supported",
+    "title": "isApiSupported",
+    "sidebar_position": 4
+  }
+}
