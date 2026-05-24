@@ -42,17 +42,17 @@
       "plugin": "plugin---refrag-docusaurus-debugb-38-82b"
     }
   },
-  "/refrag/-7dd": {
+  "/refrag/-901": {
     "__comp": "__comp---theme-docs-root-5-e-9-0b6",
     "__context": {
       "plugin": "plugin---refrag-aba-1f5"
     }
   },
-  "/refrag/-829": {
+  "/refrag/-b05": {
     "__comp": "__comp---theme-doc-version-roota-7-b-5de",
     "__props": "__props---refrag-b-06-be5"
   },
-  "/refrag/-00f": {
+  "/refrag/-1b7": {
     "__comp": "__comp---theme-doc-roota-94-67a"
   },
   "/refrag/browser-support-34e": {
@@ -62,6 +62,10 @@
   "/refrag/html-shader-68e": {
     "__comp": "__comp---theme-doc-item-178-a40",
     "content": "content---refrag-html-shadera-66-7b7"
+  },
+  "/refrag/is-api-supported-336": {
+    "__comp": "__comp---theme-doc-item-178-a40",
+    "content": "content---refrag-is-api-supported-315-584"
   },
   "/refrag/use-html-texture-f2d": {
     "__comp": "__comp---theme-doc-item-178-a40",

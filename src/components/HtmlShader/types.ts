@@ -32,8 +32,11 @@ export interface HtmlShaderProps {
    * import frag from './ripple.frag?raw';
    * ```
    * Defaults to a passthrough shader that renders the HTML content as-is.
+   *
+   * Pass an array for multi-pass rendering — shaders are applied in order,
+   * with each pass's output fed as `u_texture` into the next.
    */
-  frag?: string;
+  frag?: string | string[];
 
   /**
    * Raw GLSL vertex shader source.

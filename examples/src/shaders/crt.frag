@@ -21,6 +21,11 @@ vec2 curve(vec2 uv) {
 }
 
 void main() {
+  float curvature    = 0.0008; // 0–0.005 — chromatic aberration at edges
+  float scanStrength = 0.12;   // 0–1 — scanline contrast
+  float grainAmount  = 0.025;  // 0–0.1 — film grain intensity
+  float vigStrength  = 0.55;   // 0–1 — vignette falloff
+
   vec2 uv = curve(v_uv);
 
   // Black mask outside the curved screen
@@ -30,7 +35,7 @@ void main() {
   }
 
   // Sample with subtle chromatic abberation along the edges
-  float ca = 0.0008 * length(uv * 2.0 - 1.0);
+  float ca = curvature * length(uv * 2.0 - 1.0);
   vec2 dir = normalize(uv - 0.5);
   float r = texture(u_texture, uv + dir * ca).r;
   float g = texture(u_texture, uv).g;
@@ -40,7 +45,7 @@ void main() {
 
   // Scanlines — one dark band per physical pixel row pair
   float scan = sin(uv.y * u_resolution.y * 3.14159);
-  col.rgb *= 0.88 + 0.12 * scan;
+  col.rgb *= (1.0 - scanStrength) + scanStrength * scan;
 
   // Subtle phosphor row tint (R/G/B sub-pixels)
   float px = mod(gl_FragCoord.x, 3.0);
@@ -53,12 +58,12 @@ void main() {
 
   // Vignette
   vec2 vig = v_uv * 2.0 - 1.0;
-  float vignette = 1.0 - dot(vig * 0.55, vig * 0.55);
+  float vignette = 1.0 - dot(vig * vigStrength, vig * vigStrength);
   col.rgb *= smoothstep(0.0, 1.0, vignette);
 
   // Film grain
   float grain = hash(v_uv + fract(u_time * 0.07));
-  col.rgb += (grain - 0.5) * 0.025;
+  col.rgb += (grain - 0.5) * grainAmount;
 
   out_color = col;
 }

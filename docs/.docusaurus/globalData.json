@@ -26,6 +26,10 @@
               "sidebar": "docs"
             },
             {
+              "id": "is-api-supported",
+              "path": "/refrag/is-api-supported"
+            },
+            {
               "id": "use-html-texture",
               "path": "/refrag/use-html-texture",
               "sidebar": "docs"

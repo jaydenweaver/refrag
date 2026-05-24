@@ -1,0 +1,70 @@
+{
+  "version": "1.59.1",
+  "viteVersion": "6.4.2",
+  "registerSourceHash": "ea233d95b980072c81eb49458aee55f5d33fdb02",
+  "components": [
+    {
+      "id": "C__Users_Jayden_projects_refrag_src_components_HtmlShader_index_js_HtmlShader",
+      "filename": "C:\\Users\\Jayden\\projects\\refrag\\e2e\\HtmlShader.spec.tsx",
+      "importSource": "../src/components/HtmlShader/index.js",
+      "remoteName": "HtmlShader"
+    }
+  ],
+  "sources": {
+    "C:/Users/Jayden/projects/refrag/playwright/index.html": {
+      "timestamp": 1777976962812.6826
+    },
+    "C:/Users/Jayden/projects/refrag/playwright/index.tsx": {
+      "timestamp": 1778161883992.3872
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react/index.js": {
+      "timestamp": 1777974920500.6343
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/@playwright/experimental-ct-react/hooks.mjs": {
+      "timestamp": 1777976952577.23
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react-dom/client.js": {
+      "timestamp": 1777974919995.937
+    },
+    "C:/Users/Jayden/projects/refrag/src/components/HtmlShader/index.tsx": {
+      "timestamp": 1778160998950.4902
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react/cjs/react.production.js": {
+      "timestamp": 1777974922833.063
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react-dom/cjs/react-dom-client.production.js": {
+      "timestamp": 1777974922876.7815
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react-dom/index.js": {
+      "timestamp": 1777974920718.7817
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react/jsx-runtime.js": {
+      "timestamp": 1777974921126.642
+    },
+    "C:/Users/Jayden/projects/refrag/src/core/webgl.ts": {
+      "timestamp": 1777973901994.664
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/scheduler/index.js": {
+      "timestamp": 1777974919978.4602
+    },
+    "C:/Users/Jayden/projects/refrag/src/shaders/defaults.ts": {
+      "timestamp": 1778026079652.2002
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react-dom/cjs/react-dom.production.js": {
+      "timestamp": 1777974923588.7756
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/react/cjs/react-jsx-runtime.production.js": {
+      "timestamp": 1777974922592.888
+    },
+    "C:/Users/Jayden/projects/refrag/node_modules/scheduler/cjs/scheduler.production.js": {
+      "timestamp": 1777974922282.7327
+    }
+  },
+  "deps": {
+    "C:\\Users\\Jayden\\projects\\refrag\\src\\components\\HtmlShader\\index.tsx": [
+      "C:\\Users\\Jayden\\projects\\refrag\\src\\components\\HtmlShader\\index.tsx",
+      "C:\\Users\\Jayden\\projects\\refrag\\src\\core\\webgl.ts",
+      "C:\\Users\\Jayden\\projects\\refrag\\src\\shaders\\defaults.ts"
+    ]
+  }
+}

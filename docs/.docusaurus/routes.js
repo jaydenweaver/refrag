@@ -39,15 +39,15 @@ export default [
   },
   {
     path: '/refrag/',
-    component: ComponentCreator('/refrag/', '7dd'),
+    component: ComponentCreator('/refrag/', '901'),
     routes: [
       {
         path: '/refrag/',
-        component: ComponentCreator('/refrag/', '829'),
+        component: ComponentCreator('/refrag/', 'b05'),
         routes: [
           {
             path: '/refrag/',
-            component: ComponentCreator('/refrag/', '00f'),
+            component: ComponentCreator('/refrag/', '1b7'),
             routes: [
               {
                 path: '/refrag/browser-support',
@@ -60,6 +60,11 @@ export default [
                 component: ComponentCreator('/refrag/html-shader', '68e'),
                 exact: true,
                 sidebar: "docs"
+              },
+              {
+                path: '/refrag/is-api-supported',
+                component: ComponentCreator('/refrag/is-api-supported', '336'),
+                exact: true
               },
               {
                 path: '/refrag/use-html-texture',

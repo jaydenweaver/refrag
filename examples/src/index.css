@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* ─── Corner marks — L-bracket style (from swarmparty) ─── */
+.corner-mark {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.5rem;
+  pointer-events: none;
+  z-index: 20;
+}
+.corner-tl { top: 0; left: 0; border-top: 1px solid rgba(255,255,255,0.6); border-left: 1px solid rgba(255,255,255,0.6); }
+.corner-tr { top: 0; right: 0; border-top: 1px solid rgba(255,255,255,0.6); border-right: 1px solid rgba(255,255,255,0.6); }
+.corner-bl { bottom: 0; left: 0; border-bottom: 1px solid rgba(255,255,255,0.6); border-left: 1px solid rgba(255,255,255,0.6); }
+.corner-br { bottom: 0; right: 0; border-bottom: 1px solid rgba(255,255,255,0.6); border-right: 1px solid rgba(255,255,255,0.6); }
+
+/* ─── Research quotes (from swarmparty) ─── */
+:root {
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(1.375rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.research-row {
+  transition: background 0.2s ease;
+}
+
+.research-row-inner {
+  opacity: 0;
+  transform: translateY(0.625rem);
+}
+
+.research-section.research-visible .research-row-inner {
+  animation: fade-up 0.5s var(--ease-out-expo) both;
+}
+
+.research-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .research-row-inner {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
