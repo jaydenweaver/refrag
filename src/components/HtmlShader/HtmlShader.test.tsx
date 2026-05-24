@@ -1,8 +1,13 @@
-import { createRoot } from "react-dom/client";
-import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HtmlShader } from "./index.js";
 import type { CustomUniform } from "./index.js";
+
+// Re-imported per test via vi.resetModules() to reset the module-level
+// _apiSupported cache inside isApiSupported(). All React modules are
+// re-imported together to guarantee a single consistent React instance.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let HtmlShader: any;
+let createRoot: typeof import("react-dom/client").createRoot;
+let act: typeof import("react").act;
 
 // Prevent the rAF draw loop from running during tests.
 vi.spyOn(window, "requestAnimationFrame").mockReturnValue(0);
@@ -29,6 +34,11 @@ function makeGlMock(extra?: Record<string, unknown>) {
     deleteTexture: vi.fn(),
     bindTexture: vi.fn(),
     texParameteri: vi.fn(),
+    texImage2D: vi.fn(),
+    createFramebuffer: vi.fn(() => ({})),
+    deleteFramebuffer: vi.fn(),
+    bindFramebuffer: vi.fn(),
+    framebufferTexture2D: vi.fn(),
     VERTEX_SHADER: 35633,
     FRAGMENT_SHADER: 35632,
     COMPILE_STATUS: 35713,
@@ -41,6 +51,9 @@ function makeGlMock(extra?: Record<string, unknown>) {
     CLAMP_TO_EDGE: 33071,
     RGBA: 6408,
     UNSIGNED_BYTE: 5121,
+    FRAMEBUFFER: 36160,
+    COLOR_ATTACHMENT0: 36064,
+    getExtension: vi.fn(() => null),
     // HTML-in-Canvas extension
     texElementImage2D: vi.fn(),
     ...extra,
@@ -48,9 +61,19 @@ function makeGlMock(extra?: Record<string, unknown>) {
 }
 
 let container: HTMLDivElement;
-let root: ReturnType<typeof createRoot>;
+let root: ReturnType<typeof import("react-dom/client").createRoot>;
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.resetModules();
+  const [reactMod, reactDomMod, indexMod] = await Promise.all([
+    import("react"),
+    import("react-dom/client"),
+    import("./index.js"),
+  ]);
+  act = (reactMod as typeof import("react")).act;
+  createRoot = (reactDomMod as typeof import("react-dom/client")).createRoot;
+  HtmlShader = (indexMod as typeof import("./index.js")).HtmlShader;
+
   container = document.createElement("div");
   document.body.appendChild(container);
 });
